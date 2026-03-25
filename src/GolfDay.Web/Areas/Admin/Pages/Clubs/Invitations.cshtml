@@ -1,0 +1,222 @@
+@page "{id:int}"
+@model GolfDay.Web.Areas.Admin.Pages.Clubs.InvitationsModel
+@{
+    ViewData["Title"] = $"Invitations – {Model.Club?.Name}";
+    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+}
+
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-1">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Index">Admin</a></li>
+            <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Clubs/Index">Clubs</a></li>
+            <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Clubs/Manage" asp-route-id="@Model.Id">@Model.Club?.Name</a></li>
+            <li class="breadcrumb-item active">Invitations</li>
+        </ol>
+    </nav>
+    <h1 class="h2 fw-bold mb-4"><i class="bi bi-envelope-paper me-2 text-primary"></i>Invitations &amp; Join Codes</h1>
+
+    @if (TempData["SuccessMessage"] is string msg)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle me-2"></i>@msg
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-4 mb-5">
+        <!-- Create personal invite -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold"><i class="bi bi-envelope-plus text-primary me-2"></i>Personal Email Invite</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Send a one-time invite link to a specific email address.</p>
+                    <form method="post" asp-page-handler="CreateInvite">
+                        <div class="mb-3">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" name="email" class="form-control" required placeholder="player@example.com" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Expires in (days)</label>
+                            <select name="expiryDays" class="form-select">
+                                <option value="3">3 days</option>
+                                <option value="7" selected>7 days</option>
+                                <option value="14">14 days</option>
+                                <option value="30">30 days</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-send me-1"></i>Create Invite
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create join code -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold"><i class="bi bi-key text-warning me-2"></i>Reusable Join Code</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Create a shareable code anyone can use to join (up to a limit).</p>
+                    <form method="post" asp-page-handler="CreateJoinCode">
+                        <div class="mb-3">
+                            <label class="form-label">Label</label>
+                            <input type="text" name="label" class="form-control" required placeholder="e.g. Spring 2025 Members" maxlength="200" />
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col">
+                                <label class="form-label">Max Uses <span class="text-muted">(blank = unlimited)</span></label>
+                                <input type="number" name="maxUses" class="form-control" min="1" placeholder="Unlimited" />
+                            </div>
+                            <div class="col">
+                                <label class="form-label">Expires in (days)</label>
+                                <select name="expiryDays" class="form-select">
+                                    <option value="7">7 days</option>
+                                    <option value="30" selected>30 days</option>
+                                    <option value="90">90 days</option>
+                                    <option value="365">1 year</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-key me-1"></i>Create Join Code
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invitations table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-semibold">All Invitations &amp; Codes</h5>
+            <span class="badge bg-secondary rounded-pill">@Model.Invitations.Count</span>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Invitations.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Type</th>
+                                <th>Token / Code</th>
+                                <th>Target / Label</th>
+                                <th>Created By</th>
+                                <th>Uses</th>
+                                <th>Expires</th>
+                                <th>Status</th>
+                                <th class="text-end pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var inv in Model.Invitations)
+                            {
+                                var isExpired = inv.ExpiresAt < DateTime.UtcNow;
+                                var joinLink = $"{baseUrl}/Club/Join?token={inv.Token}";
+                                <tr class="@(inv.IsRevoked || isExpired ? "table-secondary opacity-75" : "")">
+                                    <td class="ps-4">
+                                        @if (inv.IsJoinCode)
+                                        {
+                                            <span class="badge bg-warning text-dark rounded-pill">
+                                                <i class="bi bi-key me-1"></i>Join Code
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-primary rounded-pill">
+                                                <i class="bi bi-envelope me-1"></i>Email Invite
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <code class="small">@inv.Token</code>
+                                        <button class="btn btn-link btn-sm p-0 ms-1 text-muted copy-btn"
+                                                data-copy="@joinLink" title="Copy join link">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </td>
+                                    <td class="text-muted small">@(inv.IsJoinCode ? inv.Label : inv.Email)</td>
+                                    <td class="text-muted small">@inv.InvitedBy?.FullName</td>
+                                    <td class="text-center">
+                                        @inv.UseCount
+                                        @if (inv.MaxUses.HasValue)
+                                        {
+                                            <span class="text-muted">/ @inv.MaxUses</span>
+                                        }
+                                    </td>
+                                    <td class="small @(isExpired ? "text-danger" : "text-muted")">
+                                        @inv.ExpiresAt.ToString("MMM d, yyyy")
+                                        @if (isExpired) { <span class="badge bg-danger ms-1">Expired</span> }
+                                    </td>
+                                    <td>
+                                        @if (inv.IsRevoked)
+                                        {
+                                            <span class="badge bg-secondary">Revoked</span>
+                                        }
+                                        else if (isExpired)
+                                        {
+                                            <span class="badge bg-danger">Expired</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex gap-1 justify-content-end">
+                                            @if (!inv.IsRevoked && !isExpired)
+                                            {
+                                                <form method="post" asp-page-handler="Revoke">
+                                                    <input type="hidden" name="inviteId" value="@inv.Id" />
+                                                    <button class="btn btn-outline-warning btn-sm" title="Revoke">
+                                                        <i class="bi bi-slash-circle"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            <form method="post" asp-page-handler="Delete"
+                                                  onsubmit="return confirm('Delete this invitation?')">
+                                                <input type="hidden" name="inviteId" value="@inv.Id" />
+                                                <button class="btn btn-outline-danger btn-sm" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-envelope-paper fs-1 opacity-25 d-block mb-3"></i>
+                    <p>No invitations yet. Create one above.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+            const icon = btn.querySelector('i');
+            icon.className = 'bi bi-clipboard-check text-success';
+            setTimeout(() => icon.className = 'bi bi-clipboard', 2000);
+        });
+    });
+});
+</script>
+}

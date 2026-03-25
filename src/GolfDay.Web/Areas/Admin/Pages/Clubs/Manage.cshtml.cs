@@ -30,6 +30,7 @@ public class ManageModel : PageModel
     public int TotalEventCount { get; set; }
     public int TournamentCount { get; set; }
     public int LeagueSeasonCount { get; set; }
+    public int PendingJoinRequestCount { get; set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -57,6 +58,8 @@ public class ManageModel : PageModel
         TotalEventCount = await _db.GolfEvents.CountAsync(e => e.ClubId == Id);
         TournamentCount = await _db.Tournaments.CountAsync(t => t.ClubId == Id);
         LeagueSeasonCount = await _db.LeagueSeasons.CountAsync(l => l.ClubId == Id);
+        PendingJoinRequestCount = await _db.ClubJoinRequests
+            .CountAsync(r => r.ClubId == Id && r.Status == JoinRequestStatus.Pending);
     }
 
     public async Task<IActionResult> OnPostAddMemberAsync(
@@ -86,6 +89,8 @@ public class ManageModel : PageModel
             ClubId = Id,
             UserId = user.Id,
             Role = (ClubRole)role,
+            MembershipType = MembershipType.Full,
+            MembershipStatus = MembershipStatus.Active,
             MemberNumber = memberNumber,
             JoinedAt = DateTime.UtcNow,
             IsActive = true

@@ -13,6 +13,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<GolfCourse> GolfCourses => Set<GolfCourse>();
     public DbSet<CourseHole> CourseHoles => Set<CourseHole>();
     public DbSet<ClubMembership> ClubMemberships => Set<ClubMembership>();
+    public DbSet<ClubMembershipInvitation> ClubMembershipInvitations => Set<ClubMembershipInvitation>();
+    public DbSet<ClubJoinRequest> ClubJoinRequests => Set<ClubJoinRequest>();
     public DbSet<GolfEvent> GolfEvents => Set<GolfEvent>();
     public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
     public DbSet<Round> Rounds => Set<Round>();

@@ -9,6 +9,8 @@ public interface IApplicationDbContext
     DbSet<GolfCourse> GolfCourses { get; }
     DbSet<CourseHole> CourseHoles { get; }
     DbSet<ClubMembership> ClubMemberships { get; }
+    DbSet<ClubMembershipInvitation> ClubMembershipInvitations { get; }
+    DbSet<ClubJoinRequest> ClubJoinRequests { get; }
     DbSet<GolfEvent> GolfEvents { get; }
     DbSet<EventParticipant> EventParticipants { get; }
     DbSet<Round> Rounds { get; }

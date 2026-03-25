@@ -1,0 +1,241 @@
+@page "{id:int}"
+@model GolfDay.Web.Areas.Admin.Pages.Clubs.JoinRequestsModel
+@using GolfDay.Domain.Enums
+@{
+    ViewData["Title"] = $"Join Requests – {Model.Club?.Name}";
+}
+
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-1">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Index">Admin</a></li>
+            <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Clubs/Index">Clubs</a></li>
+            <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Clubs/Manage" asp-route-id="@Model.Id">@Model.Club?.Name</a></li>
+            <li class="breadcrumb-item active">Join Requests</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <h1 class="h2 fw-bold mb-0">
+            <i class="bi bi-person-check me-2 text-success"></i>Join Requests
+        </h1>
+        @if (Model.PendingCount > 0)
+        {
+            <span class="badge bg-danger rounded-pill fs-6">@Model.PendingCount pending</span>
+        }
+    </div>
+
+    @if (TempData["SuccessMessage"] is string msg)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle me-2"></i>@msg
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Filter tabs -->
+    <ul class="nav nav-tabs mb-4">
+        @foreach (var (label, value, icon) in new[] {
+            ("Pending", "pending", "bi-hourglass-split"),
+            ("Approved", "approved", "bi-check-circle"),
+            ("Rejected", "rejected", "bi-x-circle")
+        })
+        {
+            <li class="nav-item">
+                <a class="nav-link @(Model.Filter == value ? "active" : "")"
+                   asp-page="JoinRequests" asp-route-id="@Model.Id" asp-route-filter="@value">
+                    <i class="bi @icon me-1"></i>@label
+                    @if (value == "pending" && Model.PendingCount > 0)
+                    {
+                        <span class="badge bg-danger rounded-pill ms-1">@Model.PendingCount</span>
+                    }
+                </a>
+            </li>
+        }
+    </ul>
+
+    @if (!Model.Requests.Any())
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 opacity-25 d-block mb-3"></i>
+                <p class="mb-0">No @Model.Filter requests.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var req in Model.Requests)
+            {
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="row align-items-center g-3">
+                                <!-- Avatar + name -->
+                                <div class="col-md-3 d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width:48px;height:48px;">
+                                        <i class="bi bi-person fs-4 text-secondary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">@req.User.FullName</div>
+                                        <div class="text-muted small">@req.User.Email</div>
+                                        @if (req.User.HandicapIndex.HasValue)
+                                        {
+                                            <div class="text-muted small">HI: @req.User.HandicapIndex.Value.ToString("F1")</div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Message -->
+                                <div class="col-md-4">
+                                    @if (!string.IsNullOrEmpty(req.ApplicantMessage))
+                                    {
+                                        <div class="bg-light rounded p-2 small fst-italic">
+                                            "@req.ApplicantMessage"
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fst-italic">No message provided</span>
+                                    }
+                                    <div class="text-muted small mt-1">
+                                        Requested @req.CreatedAt.ToString("MMM d, yyyy h:mm tt")
+                                    </div>
+                                </div>
+
+                                <!-- Status / review info -->
+                                <div class="col-md-2 text-center">
+                                    @{
+                                        var (badgeClass, badgeText) = req.Status switch
+                                        {
+                                            JoinRequestStatus.Approved => ("bg-success", "Approved"),
+                                            JoinRequestStatus.Rejected => ("bg-danger", "Rejected"),
+                                            _ => ("bg-warning text-dark", "Pending")
+                                        };
+                                    }
+                                    <span class="badge @badgeClass rounded-pill">@badgeText</span>
+                                    @if (req.ReviewedAt.HasValue)
+                                    {
+                                        <div class="text-muted small mt-1">
+                                            by @req.ReviewedBy?.FullName<br />
+                                            @req.ReviewedAt.Value.ToString("MMM d")
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="col-md-3">
+                                    @if (req.Status == JoinRequestStatus.Pending)
+                                    {
+                                        <div class="d-flex gap-2">
+                                            <!-- Approve -->
+                                            <button class="btn btn-success btn-sm flex-fill"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#approveModal"
+                                                    data-request-id="@req.Id"
+                                                    data-name="@req.User.FullName">
+                                                <i class="bi bi-check-lg me-1"></i>Approve
+                                            </button>
+                                            <!-- Reject -->
+                                            <button class="btn btn-outline-danger btn-sm flex-fill"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#rejectModal"
+                                                    data-request-id="@req.Id"
+                                                    data-name="@req.User.FullName">
+                                                <i class="bi bi-x-lg me-1"></i>Reject
+                                            </button>
+                                        </div>
+                                    }
+                                    else if (!string.IsNullOrEmpty(req.ReviewNotes))
+                                    {
+                                        <div class="text-muted small fst-italic">"@req.ReviewNotes"</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Approve">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-check-circle text-success me-2"></i>Approve Request</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="requestId" id="approveRequestId" />
+                    <p>Approve <strong id="approveName"></strong> as a club member?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Membership Type</label>
+                        <select name="membershipType" class="form-select">
+                            <option value="Full" selected>Full Member</option>
+                            <option value="Associate">Associate</option>
+                            <option value="Guest">Guest</option>
+                            <option value="Honorary">Honorary</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes <span class="text-muted">(optional)</span></label>
+                        <textarea name="reviewNotes" class="form-control" rows="2" maxlength="500"
+                                  placeholder="Internal notes about this approval..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Approve & Add Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Reject">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-x-circle text-danger me-2"></i>Reject Request</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="requestId" id="rejectRequestId" />
+                    <p>Reject <strong id="rejectName"></strong>'s membership request?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Reason <span class="text-muted">(optional, shown internally only)</span></label>
+                        <textarea name="reviewNotes" class="form-control" rows="2" maxlength="500"
+                                  placeholder="Reason for rejection..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-x-lg me-1"></i>Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('approveModal').addEventListener('show.bs.modal', e => {
+    const btn = e.relatedTarget;
+    document.getElementById('approveRequestId').value = btn.dataset.requestId;
+    document.getElementById('approveName').textContent = btn.dataset.name;
+});
+document.getElementById('rejectModal').addEventListener('show.bs.modal', e => {
+    const btn = e.relatedTarget;
+    document.getElementById('rejectRequestId').value = btn.dataset.requestId;
+    document.getElementById('rejectName').textContent = btn.dataset.name;
+});
+</script>
+}

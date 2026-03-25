@@ -1,0 +1,167 @@
+@page
+@model GolfDay.Web.Pages.Club.JoinModel
+@{
+    ViewData["Title"] = "Join a Golf Club";
+}
+
+<div class="container py-5" style="max-width:720px;">
+
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@success
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Hero -->
+    <div class="text-center mb-5">
+        <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3"
+             style="width:72px;height:72px;">
+            <i class="bi bi-people-fill fs-2 text-success"></i>
+        </div>
+        <h1 class="h2 fw-bold mb-1">Join a Golf Club</h1>
+        <p class="text-muted">Use an invite code, or request membership from a public club below.</p>
+    </div>
+
+    <!-- Tab nav -->
+    <ul class="nav nav-pills nav-fill mb-4 gap-2" id="joinTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.Invitation != null || !string.IsNullOrEmpty(Model.Token) ? "active" : "")"
+                    id="code-tab" data-bs-toggle="pill" data-bs-target="#codePane" type="button">
+                <i class="bi bi-key me-1"></i>Invite / Join Code
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.Invitation == null && string.IsNullOrEmpty(Model.Token) ? "active" : "")"
+                    id="request-tab" data-bs-toggle="pill" data-bs-target="#requestPane" type="button">
+                <i class="bi bi-send me-1"></i>Request Membership
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <!-- ── Tab 1: Invite / Join Code ── -->
+        <div class="tab-pane fade @(Model.Invitation != null || !string.IsNullOrEmpty(Model.Token) ? "show active" : "")"
+             id="codePane" role="tabpanel">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+
+                    @if (Model.Invitation != null)
+                    {
+                        <div class="alert alert-success mb-4">
+                            <i class="bi bi-envelope-check-fill me-2"></i>
+                            You have been invited to join <strong>@Model.Invitation.Club.Name</strong>
+                            @if (Model.Invitation.IsJoinCode)
+                            {
+                                <span class="badge bg-success ms-2">Join Code</span>
+                            }
+                        </div>
+                    }
+
+                    <h5 class="fw-semibold mb-3">
+                        <i class="bi bi-key text-warning me-2"></i>Enter Your Code
+                    </h5>
+                    <p class="text-muted small mb-4">
+                        If you received an email invite or a join code from your club manager, enter it here.
+                    </p>
+
+                    <form method="post" asp-page-handler="Redeem">
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Invite Code or Join Code</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-white"><i class="bi bi-key text-warning"></i></span>
+                                <input type="text" name="JoinCode" class="form-control font-monospace"
+                                       value="@(Model.Token ?? "")"
+                                       placeholder="e.g. abc12def34" />
+                            </div>
+                            <div class="form-text">Codes are case-sensitive.</div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="bi bi-check-circle me-2"></i>Redeem Code &amp; Join Club
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-3 text-muted small">
+                <i class="bi bi-info-circle me-1"></i>
+                Don't have a code? Ask your club manager, or use the
+                <a href="#" onclick="document.getElementById('request-tab').click(); return false;">Request Membership</a> tab.
+            </div>
+        </div>
+
+        <!-- ── Tab 2: Request Membership ── -->
+        <div class="tab-pane fade @(Model.Invitation == null && string.IsNullOrEmpty(Model.Token) ? "show active" : "")"
+             id="requestPane" role="tabpanel">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="fw-semibold mb-3">
+                        <i class="bi bi-send text-primary me-2"></i>Request to Join a Club
+                    </h5>
+                    <p class="text-muted small mb-4">
+                        Select a public club and send the manager a membership request.
+                        You'll get access once they approve it.
+                    </p>
+
+                    <form method="post" asp-page-handler="Request">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Club <span class="text-danger">*</span></label>
+                            @if (Model.PublicClubs.Any())
+                            {
+                                <select name="ClubId" class="form-select form-select-lg" required>
+                                    <option value="">— Select a club —</option>
+                                    @foreach (var club in Model.PublicClubs)
+                                    {
+                                        <option value="@club.Id">@club.Name @(club.City != null ? $"({club.City}, {club.State})" : "")</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning">
+                                    No public clubs are currently accepting membership requests.
+                                    Contact your club manager for an invite code.
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Message to Manager <span class="text-muted fw-normal">(optional)</span></label>
+                            <textarea name="Message" class="form-control" rows="3"
+                                      placeholder="Tell the manager why you'd like to join, your GHIN number, etc."
+                                      maxlength="1000"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100" @(!Model.PublicClubs.Any() ? "disabled" : "")>
+                            <i class="bi bi-send me-2"></i>Submit Membership Request
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-3 text-muted small">
+                <i class="bi bi-clock me-1"></i>
+                Requests are reviewed by the club manager. You'll have access once approved.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Auto-activate Code tab if a token param is in the URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('token') && params.get('token')) {
+        document.getElementById('code-tab')?.click();
+    }
+</script>
+}
