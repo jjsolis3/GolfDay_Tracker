@@ -13,6 +13,7 @@
     var back9Score   = back9.Sum(h => h.Strokes);
     var totalPar     = front9Par + back9Par;
     var totalScore   = front9Score + back9Score;
+    var round        = Model.Round;
 
     static string ScoreColor(int strokes, int par)
     {
@@ -72,8 +73,6 @@
         </div>
         return;
     }
-
-    var round = Model.Round;
 
     <!-- Header -->
     <div class="card border-0 shadow-sm mb-4 overflow-hidden">

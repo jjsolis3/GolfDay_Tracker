@@ -89,7 +89,7 @@ public class SetupModel : PageModel
         {
             ClubId = club.Id,
             UserId = userId,
-            Role = Domain.Enums.ClubRole.ClubManager,
+            Role = Domain.Enums.ClubRole.Admin,
             MembershipType = Domain.Enums.MembershipType.Full,
             MembershipStatus = Domain.Enums.MembershipStatus.Active,
             IsActive = true,

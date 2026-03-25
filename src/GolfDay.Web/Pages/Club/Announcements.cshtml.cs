@@ -32,7 +32,7 @@ public class AnnouncementsModel : PageModel
         {
             IsManager = await _db.ClubMemberships.AnyAsync(m =>
                 m.ClubId == ClubId && m.UserId == userId && m.IsActive &&
-                (m.Role == ClubRole.Owner || m.Role == ClubRole.Manager));
+                (m.Role == ClubRole.Admin || m.Role == ClubRole.Manager));
         }
 
         var now = DateTime.UtcNow;

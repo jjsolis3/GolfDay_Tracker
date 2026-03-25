@@ -67,7 +67,7 @@ public class ConditionsModel : PageModel
 
         var isManager = await _db.ClubMemberships
             .AnyAsync(m => m.ClubId == ClubId && m.UserId == userId && m.IsActive &&
-                           (m.Role == ClubRole.Owner || m.Role == ClubRole.Manager));
+                           (m.Role == ClubRole.Admin || m.Role == ClubRole.Manager));
 
         _db.CourseConditionReports.Add(new CourseConditionReport
         {
