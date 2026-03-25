@@ -40,6 +40,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
             if (entry.State == EntityState.Modified)
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
         }
+
+        // Normalize all DateTime values to UTC before saving.
+        // HTML form inputs produce Kind=Unspecified which PostgreSQL timestamptz rejects.
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State == EntityState.Unchanged) continue;
+            foreach (var property in entry.Properties)
+            {
+                if (property.CurrentValue is DateTime dt && dt.Kind != DateTimeKind.Utc)
+                    property.CurrentValue = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+            }
+        }
+
         return await base.SaveChangesAsync(cancellationToken);
     }
 }
