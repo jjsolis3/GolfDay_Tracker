@@ -132,9 +132,14 @@
                                         }
                                     </td>
                                     <td class="text-center">
-                                        @(user.HandicapIndex.HasValue
-                                            ? user.HandicapIndex.Value.ToString("F1")
-                                            : <span class="text-muted">—</span>)
+                                        @if (user.HandicapIndex.HasValue)
+                                        {
+                                            @user.HandicapIndex.Value.ToString("F1")
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
                                     </td>
                                     <td>
                                         @if (memberships.Any())

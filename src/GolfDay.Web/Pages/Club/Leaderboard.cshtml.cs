@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using ClubEntity = GolfDay.Domain.Entities.Club;
 
 namespace GolfDay.Web.Pages.Club;
 
@@ -14,7 +15,7 @@ public class LeaderboardModel : PageModel
     public LeaderboardModel(IApplicationDbContext db) => _db = db;
 
     public List<PlayerSeasonStats> Entries { get; set; } = new();
-    public List<Club> Clubs               { get; set; } = new();
+    public List<ClubEntity> Clubs          { get; set; } = new();
     public int SelectedClubId             { get; set; }
     public int SelectedYear               { get; set; }
     public string? CurrentUserId          { get; set; }

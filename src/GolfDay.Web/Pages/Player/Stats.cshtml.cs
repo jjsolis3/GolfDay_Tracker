@@ -1,6 +1,7 @@
 using GolfDay.Application.Common.Interfaces;
 using GolfDay.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using ClubEntity = GolfDay.Domain.Entities.Club;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -23,7 +24,7 @@ public class StatsModel : PageModel
     public PlayerSeasonStats? Stats { get; set; }
     public int SelectedYear    { get; set; }
     public int SelectedClubId  { get; set; }
-    public List<Club> Clubs    { get; set; } = new();
+    public List<ClubEntity> Clubs { get; set; } = new();
 
     public List<TournamentEntry> TournamentEntries { get; set; } = new();
 

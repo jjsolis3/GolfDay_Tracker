@@ -1,6 +1,7 @@
 using GolfDay.Application.Common.Interfaces;
 using GolfDay.Domain.Entities;
 using GolfDay.Domain.Enums;
+using ClubEntity = GolfDay.Domain.Entities.Club;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -24,7 +25,7 @@ public class RoundsModel : PageModel
     public List<Round> Rounds     { get; set; } = new();
     public int SelectedYear       { get; set; }
     public int SelectedClubId     { get; set; }
-    public List<Club> Clubs       { get; set; } = new();
+    public List<ClubEntity> Clubs { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(int? year, int? clubId)
     {
