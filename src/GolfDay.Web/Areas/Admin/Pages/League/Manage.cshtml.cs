@@ -101,7 +101,7 @@ public class ManageModel : PageModel
         await _db.SaveChangesAsync();
 
         TempData["SuccessMessage"] = $"{user.FullName} has been added to the league.";
-        return RedirectToPage(new { id = Id }, new { tab = "players" });
+        return RedirectToPage(new { id = Id, tab = "players" });
     }
 
     public async Task<IActionResult> OnPostRemovePlayerAsync(int entryId)
@@ -113,7 +113,7 @@ public class ManageModel : PageModel
         await _db.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Player removed from the league.";
-        return RedirectToPage(new { id = Id }, new { tab = "players" });
+        return RedirectToPage(new { id = Id, tab = "players" });
     }
 
     public async Task<IActionResult> OnPostGenerateScheduleAsync()
@@ -128,7 +128,7 @@ public class ManageModel : PageModel
         if (entries.Count < 2)
         {
             TempData["ErrorMessage"] = "At least 2 players are required to generate a schedule.";
-            return RedirectToPage(new { id = Id }, new { tab = "matches" });
+            return RedirectToPage(new { id = Id, tab = "matches" });
         }
 
         // Remove existing unplayed matches
@@ -194,7 +194,7 @@ public class ManageModel : PageModel
         await _db.SaveChangesAsync();
 
         TempData["SuccessMessage"] = $"Schedule generated with {newMatches.Count} matches across {numRounds} rounds.";
-        return RedirectToPage(new { id = Id }, new { tab = "matches" });
+        return RedirectToPage(new { id = Id, tab = "matches" });
     }
 
     public async Task<IActionResult> OnPostRecordResultAsync(
@@ -237,7 +237,7 @@ public class ManageModel : PageModel
         await RecalculateStandingsInternalAsync();
 
         TempData["SuccessMessage"] = "Match result recorded successfully.";
-        return RedirectToPage(new { id = Id }, new { tab = "matches" });
+        return RedirectToPage(new { id = Id, tab = "matches" });
     }
 
     public async Task<IActionResult> OnPostRecalculateStandingsAsync()
@@ -248,7 +248,7 @@ public class ManageModel : PageModel
         await RecalculateStandingsInternalAsync();
 
         TempData["SuccessMessage"] = "Standings recalculated successfully.";
-        return RedirectToPage(new { id = Id }, new { tab = "standings" });
+        return RedirectToPage(new { id = Id, tab = "standings" });
     }
 
     private async Task RecalculateStandingsInternalAsync()

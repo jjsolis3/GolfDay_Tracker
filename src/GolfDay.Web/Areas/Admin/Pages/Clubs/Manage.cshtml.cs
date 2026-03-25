@@ -95,7 +95,7 @@ public class ManageModel : PageModel
         await _db.SaveChangesAsync();
 
         TempData["SuccessMessage"] = $"{user.FullName} has been added as a club member.";
-        return RedirectToPage(new { id = Id }, new { tab = "members" });
+        return RedirectToPage(new { id = Id, tab = "members" });
     }
 
     public async Task<IActionResult> OnPostRemoveMemberAsync(int membershipId)
@@ -107,7 +107,7 @@ public class ManageModel : PageModel
         await _db.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Member has been removed from the club.";
-        return RedirectToPage(new { id = Id }, new { tab = "members" });
+        return RedirectToPage(new { id = Id, tab = "members" });
     }
 
     public async Task<IActionResult> OnPostUpdateRoleAsync(int membershipId, int newRole)
@@ -120,7 +120,7 @@ public class ManageModel : PageModel
         await _db.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Member role updated successfully.";
-        return RedirectToPage(new { id = Id }, new { tab = "members" });
+        return RedirectToPage(new { id = Id, tab = "members" });
     }
 
     public async Task<IActionResult> OnPostUpdateSettingsAsync(
@@ -146,6 +146,6 @@ public class ManageModel : PageModel
         await _db.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Club settings saved successfully.";
-        return RedirectToPage(new { id = Id }, new { tab = "settings" });
+        return RedirectToPage(new { id = Id, tab = "settings" });
     }
 }

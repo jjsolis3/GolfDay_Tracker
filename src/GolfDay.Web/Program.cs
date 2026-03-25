@@ -33,7 +33,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage("/Club/Dashboard");
     options.Conventions.AuthorizePage("/Scoring/Live");
 })
-.AddRazorRuntimeCompilation();
+;
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();

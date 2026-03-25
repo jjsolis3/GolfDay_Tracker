@@ -2,7 +2,7 @@
 @model GolfDay.Web.Areas.Admin.Pages.League.ManageModel
 @{
     ViewData["Title"] = $"Manage League – {Model.Season?.Name}";
-    var activeTab = Context.Request.Query["tab"].FirstOrDefault() ?? "overview";
+    var activeTab = Request.Query["tab"].FirstOrDefault() ?? "overview";
 }
 
 <div class="container-fluid py-4">

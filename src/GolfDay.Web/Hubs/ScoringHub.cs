@@ -2,6 +2,7 @@ using GolfDay.Application.Common.Interfaces;
 using GolfDay.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace GolfDay.Web.Hubs;
 
