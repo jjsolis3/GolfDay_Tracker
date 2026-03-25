@@ -26,6 +26,11 @@ public interface IApplicationDbContext
     DbSet<Notification> Notifications { get; }
     DbSet<TeeTimeSlot> TeeTimeSlots { get; }
     DbSet<TeeTimeBooking> TeeTimeBookings { get; }
+    DbSet<ClubAnnouncement> ClubAnnouncements { get; }
+    DbSet<Sponsor> Sponsors { get; }
+    DbSet<EventSponsor> EventSponsors { get; }
+    DbSet<EventWaitlistEntry> EventWaitlistEntries { get; }
+    DbSet<CourseConditionReport> CourseConditionReports { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

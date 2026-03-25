@@ -30,6 +30,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<TeeTimeSlot> TeeTimeSlots => Set<TeeTimeSlot>();
     public DbSet<TeeTimeBooking> TeeTimeBookings => Set<TeeTimeBooking>();
+    public DbSet<ClubAnnouncement> ClubAnnouncements => Set<ClubAnnouncement>();
+    public DbSet<Sponsor> Sponsors => Set<Sponsor>();
+    public DbSet<EventSponsor> EventSponsors => Set<EventSponsor>();
+    public DbSet<EventWaitlistEntry> EventWaitlistEntries => Set<EventWaitlistEntry>();
+    public DbSet<CourseConditionReport> CourseConditionReports => Set<CourseConditionReport>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

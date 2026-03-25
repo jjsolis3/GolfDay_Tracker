@@ -1,0 +1,283 @@
+@page "{id:int}"
+@model GolfDay.Web.Areas.Admin.Pages.Clubs.AnnouncementsModel
+@using GolfDay.Domain.Enums
+@{
+    ViewData["Title"] = $"Announcements – {Model.Club?.Name}";
+}
+
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Index">Admin</a></li>
+                    <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Clubs/Index">Clubs</a></li>
+                    <li class="breadcrumb-item">
+                        <a asp-area="Admin" asp-page="/Clubs/Manage" asp-route-id="@Model.Id">@Model.Club?.Name</a>
+                    </li>
+                    <li class="breadcrumb-item active">Announcements</li>
+                </ol>
+            </nav>
+            <h1 class="h2 fw-bold mb-0">
+                <i class="bi bi-megaphone me-2 text-success"></i>Announcements
+            </h1>
+            <p class="text-muted mb-0 mt-1">Manage club-wide announcements for @Model.Club?.Name</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-area="Admin" asp-page="/Clubs/Manage" asp-route-id="@Model.Id"
+               class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Manage
+            </a>
+            <button type="button" class="btn btn-success"
+                    data-bs-toggle="modal" data-bs-target="#newAnnouncementModal">
+                <i class="bi bi-plus-lg me-1"></i>New Announcement
+            </button>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@success
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] is string error)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle me-2"></i>@error
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Summary bar -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-sm-3">
+            <div class="card border-0 bg-success bg-opacity-10 text-center py-3">
+                <div class="fw-bold fs-4 text-success">@Model.Announcements.Count</div>
+                <small class="text-muted">Total</small>
+            </div>
+        </div>
+        <div class="col-6 col-sm-3">
+            <div class="card border-0 bg-warning bg-opacity-10 text-center py-3">
+                <div class="fw-bold fs-4 text-warning">@Model.Announcements.Count(a => a.IsPinned)</div>
+                <small class="text-muted">Pinned</small>
+            </div>
+        </div>
+        <div class="col-6 col-sm-3">
+            <div class="card border-0 bg-primary bg-opacity-10 text-center py-3">
+                <div class="fw-bold fs-4 text-primary">@Model.Announcements.Count(a => a.IsPublished)</div>
+                <small class="text-muted">Published</small>
+            </div>
+        </div>
+        <div class="col-6 col-sm-3">
+            <div class="card border-0 bg-secondary bg-opacity-10 text-center py-3">
+                <div class="fw-bold fs-4 text-secondary">@Model.Announcements.Count(a => !a.IsPublished)</div>
+                <small class="text-muted">Drafts</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcements List -->
+    @if (!Model.Announcements.Any())
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-megaphone fs-1 text-muted opacity-25 d-block mb-3"></i>
+                <h5 class="text-muted">No announcements yet</h5>
+                <p class="text-muted mb-4">Create your first announcement to communicate with club members.</p>
+                <button type="button" class="btn btn-success"
+                        data-bs-toggle="modal" data-bs-target="#newAnnouncementModal">
+                    <i class="bi bi-plus-lg me-1"></i>Create First Announcement
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-3">
+            @foreach (var ann in Model.Announcements)
+            {
+                @{
+                    var targetLabel = ann.Target switch
+                    {
+                        AnnouncementTarget.AllMembers    => "All Members",
+                        AnnouncementTarget.ActiveMembers => "Active Members",
+                        AnnouncementTarget.ManagersOnly  => "Managers Only",
+                        _                                => ann.Target.ToString()
+                    };
+                    var targetColor = ann.Target switch
+                    {
+                        AnnouncementTarget.AllMembers    => "bg-info",
+                        AnnouncementTarget.ActiveMembers => "bg-primary",
+                        AnnouncementTarget.ManagersOnly  => "bg-danger",
+                        _                                => "bg-secondary"
+                    };
+                    var isExpired = ann.ExpiresAt.HasValue && ann.ExpiresAt.Value < DateTime.UtcNow;
+                }
+                <div class="card border-0 shadow-sm @(ann.IsPinned ? "border-start border-warning border-4" : "")">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                    @if (ann.IsPinned)
+                                    {
+                                        <i class="bi bi-pin-angle-fill text-warning" title="Pinned"></i>
+                                    }
+                                    <h5 class="mb-0 fw-semibold">@ann.Title</h5>
+                                    <span class="badge @targetColor rounded-pill">@targetLabel</span>
+                                    @if (ann.IsPublished)
+                                    {
+                                        <span class="badge bg-success rounded-pill">
+                                            <i class="bi bi-check-circle me-1"></i>Published
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary rounded-pill">Draft</span>
+                                    }
+                                    @if (isExpired)
+                                    {
+                                        <span class="badge bg-danger rounded-pill">
+                                            <i class="bi bi-clock me-1"></i>Expired
+                                        </span>
+                                    }
+                                </div>
+                                <p class="text-muted mb-2" style="white-space:pre-line;">
+                                    @(ann.Body.Length > 300 ? ann.Body[..300] + "…" : ann.Body)
+                                </p>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <small class="text-muted">
+                                        <i class="bi bi-person me-1"></i>
+                                        @(ann.CreatedBy?.FullName ?? "Unknown")
+                                    </small>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar me-1"></i>
+                                        @ann.CreatedAt.ToString("MMM d, yyyy h:mm tt")
+                                    </small>
+                                    @if (ann.PublishedAt.HasValue)
+                                    {
+                                        <small class="text-muted">
+                                            <i class="bi bi-send me-1"></i>
+                                            Published @ann.PublishedAt.Value.ToString("MMM d, yyyy")
+                                        </small>
+                                    }
+                                    @if (ann.ExpiresAt.HasValue)
+                                    {
+                                        <small class="@(isExpired ? "text-danger" : "text-muted")">
+                                            <i class="bi bi-clock me-1"></i>
+                                            Expires @ann.ExpiresAt.Value.ToString("MMM d, yyyy")
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 flex-shrink-0">
+                                <!-- Pin/Unpin -->
+                                <form method="post" asp-page-handler="TogglePin">
+                                    <input type="hidden" name="announcementId" value="@ann.Id" />
+                                    <button type="submit"
+                                            class="btn btn-sm @(ann.IsPinned ? "btn-warning" : "btn-outline-warning")"
+                                            title="@(ann.IsPinned ? "Unpin" : "Pin")">
+                                        <i class="bi bi-pin-angle@(ann.IsPinned ? "-fill" : "")"></i>
+                                        <span class="d-none d-sm-inline ms-1">@(ann.IsPinned ? "Unpin" : "Pin")</span>
+                                    </button>
+                                </form>
+                                <!-- Delete -->
+                                <form method="post" asp-page-handler="Delete"
+                                      onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+                                    <input type="hidden" name="announcementId" value="@ann.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                        <span class="d-none d-sm-inline ms-1">Delete</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- New Announcement Modal -->
+<div class="modal fade" id="newAnnouncementModal" tabindex="-1" aria-labelledby="newAnnouncementModalLabel">
+    <div class="modal-dialog modal-lg">
+        <form method="post" asp-page-handler="Create" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="newAnnouncementModalLabel">
+                    <i class="bi bi-megaphone me-2 text-success"></i>New Announcement
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Title -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+                    <input type="text" name="title" class="form-control" maxlength="200"
+                           placeholder="Announcement title…" required />
+                </div>
+                <!-- Body -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Body <span class="text-danger">*</span></label>
+                    <textarea name="body" class="form-control" rows="5"
+                              placeholder="Write your announcement here…" required></textarea>
+                </div>
+                <div class="row g-3 mb-3">
+                    <!-- Target Audience -->
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold">Target Audience</label>
+                        <select name="target" class="form-select">
+                            <option value="0">All Members</option>
+                            <option value="1">Active Members</option>
+                            <option value="2">Managers Only</option>
+                        </select>
+                    </div>
+                    <!-- Expires At -->
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold">Expires At <span class="text-muted fw-normal">(optional)</span></label>
+                        <input type="date" name="expiresAt" class="form-control" />
+                        <div class="form-text">Leave blank to never expire.</div>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <!-- Pin toggle -->
+                    <div class="col-sm-6">
+                        <div class="card border-0 bg-warning bg-opacity-10 p-3">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="isPinned"
+                                       name="isPinned" value="true" />
+                                <label class="form-check-label fw-semibold" for="isPinned">
+                                    <i class="bi bi-pin-angle me-1 text-warning"></i>Pin Announcement
+                                </label>
+                                <div class="form-text">Pinned announcements appear at the top of the list.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Published toggle -->
+                    <div class="col-sm-6">
+                        <div class="card border-0 bg-success bg-opacity-10 p-3">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="isPublished"
+                                       name="isPublished" value="true" checked />
+                                <label class="form-check-label fw-semibold" for="isPublished">
+                                    <i class="bi bi-send me-1 text-success"></i>Publish Immediately
+                                </label>
+                                <div class="form-text">Published announcements are visible to members.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-send me-1"></i>Create Announcement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
