@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using ClubEntity = GolfDay.Domain.Entities.Club;
 
 namespace GolfDay.Web.Pages.Club;
 
@@ -44,7 +45,7 @@ public class SetupModel : PageModel
     // Step 3 inputs
     [BindProperty] public string InviteEmails { get; set; } = string.Empty;
 
-    public Club? Club { get; set; }
+    public ClubEntity? Club { get; set; }
     public GolfCourse? Course { get; set; }
 
     public async Task OnGetAsync()
@@ -69,7 +70,7 @@ public class SetupModel : PageModel
         var slug = ClubName.ToLower().Replace(" ", "-").Replace("'", "")
             + "-" + Guid.NewGuid().ToString("N")[..6];
 
-        var club = new Club
+        var club = new ClubEntity
         {
             Name = ClubName.Trim(),
             Slug = slug,

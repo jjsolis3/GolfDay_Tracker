@@ -101,23 +101,21 @@
         <div class="d-flex flex-column gap-3">
             @foreach (var ann in Model.Announcements)
             {
-                @{
-                    var targetLabel = ann.Target switch
-                    {
-                        AnnouncementTarget.AllMembers    => "All Members",
-                        AnnouncementTarget.ActiveMembers => "Active Members",
-                        AnnouncementTarget.ManagersOnly  => "Managers Only",
-                        _                                => ann.Target.ToString()
-                    };
-                    var targetColor = ann.Target switch
-                    {
-                        AnnouncementTarget.AllMembers    => "bg-info",
-                        AnnouncementTarget.ActiveMembers => "bg-primary",
-                        AnnouncementTarget.ManagersOnly  => "bg-danger",
-                        _                                => "bg-secondary"
-                    };
-                    var isExpired = ann.ExpiresAt.HasValue && ann.ExpiresAt.Value < DateTime.UtcNow;
-                }
+                var targetLabel = ann.Target switch
+                {
+                    AnnouncementTarget.AllMembers    => "All Members",
+                    AnnouncementTarget.ActiveMembers => "Active Members",
+                    AnnouncementTarget.ManagersOnly  => "Managers Only",
+                    _                                => ann.Target.ToString()
+                };
+                var targetColor = ann.Target switch
+                {
+                    AnnouncementTarget.AllMembers    => "bg-info",
+                    AnnouncementTarget.ActiveMembers => "bg-primary",
+                    AnnouncementTarget.ManagersOnly  => "bg-danger",
+                    _                                => "bg-secondary"
+                };
+                var isExpired = ann.ExpiresAt.HasValue && ann.ExpiresAt.Value < DateTime.UtcNow;
                 <div class="card border-0 shadow-sm @(ann.IsPinned ? "border-start border-warning border-4" : "")">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">

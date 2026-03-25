@@ -228,7 +228,7 @@
                     </div>
 
                     <div class="d-flex justify-content-between">
-                        <a asp-page asp-route-step="1" asp-route-clubId="@Model.ClubId"
+                        <a asp-page="/Club/Setup" asp-route-step="1" asp-route-clubId="@Model.ClubId"
                            class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-2"></i>Back
                         </a>
@@ -270,12 +270,12 @@
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center">
-                        <a asp-page asp-route-step="2" asp-route-clubId="@Model.ClubId"
+                        <a asp-page="/Club/Setup" asp-route-step="2" asp-route-clubId="@Model.ClubId"
                            class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-2"></i>Back
                         </a>
                         <div class="d-flex gap-2">
-                            <a asp-page asp-route-step="4" asp-route-clubId="@Model.ClubId"
+                            <a asp-page="/Club/Setup" asp-route-step="4" asp-route-clubId="@Model.ClubId"
                                class="btn btn-outline-secondary">
                                 Skip
                             </a>
@@ -317,7 +317,7 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="ClubId" value="@Model.ClubId" />
                     <div class="d-flex justify-content-between mt-2">
-                        <a asp-page asp-route-step="3" asp-route-clubId="@Model.ClubId"
+                        <a asp-page="/Club/Setup" asp-route-step="3" asp-route-clubId="@Model.ClubId"
                            class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-2"></i>Back
                         </a>
@@ -333,10 +333,8 @@
     <!-- ──────────── STEP 5: Complete ──────────── -->
     @if (step == 5)
     {
-        @{
-            var confettiColors = new[] { "#198754","#0d6efd","#ffc107","#dc3545","#0dcaf0","#fd7e14","#6f42c1" };
-            var rng = new Random(7);
-        }
+        var confettiColors = new[] { "#198754","#0d6efd","#ffc107","#dc3545","#0dcaf0","#fd7e14","#6f42c1" };
+        var rng = new Random(7);
         @for (int ci = 0; ci < 60; ci++)
         {
             var left  = rng.Next(0, 100);

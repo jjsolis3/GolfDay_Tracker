@@ -57,6 +57,11 @@
     </div>
 </div>
 
+@{
+    var pinned = Model.Announcements.Where(a => a.IsPinned).ToList();
+    var regular = Model.Announcements.Where(a => !a.IsPinned).ToList();
+}
+
 <div class="container pb-5">
 
     @if (!Model.Announcements.Any())
@@ -71,12 +76,6 @@
     }
     else
     {
-        <!-- Pinned section -->
-        @{
-            var pinned = Model.Announcements.Where(a => a.IsPinned).ToList();
-            var regular = Model.Announcements.Where(a => !a.IsPinned).ToList();
-        }
-
         @if (pinned.Any())
         {
             <div class="mb-4">

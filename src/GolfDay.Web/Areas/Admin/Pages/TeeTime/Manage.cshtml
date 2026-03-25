@@ -47,7 +47,7 @@
     <!-- Date Navigation -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body py-2 d-flex align-items-center gap-3 flex-wrap">
-            <a asp-page asp-route-id="@Model.Id"
+            <a asp-area="Admin" asp-page="/TeeTime/Manage" asp-route-id="@Model.Id"
                asp-route-date="@prevDate.ToString("yyyy-MM-dd")"
                class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-chevron-left me-1"></i>Previous
@@ -55,7 +55,7 @@
             <h5 class="mb-0 fw-bold flex-grow-1 text-center">
                 @(isToday ? "Today — " : "")@Model.SelectedDate.ToString("dddd, MMMM d, yyyy")
             </h5>
-            <a asp-page asp-route-id="@Model.Id"
+            <a asp-area="Admin" asp-page="/TeeTime/Manage" asp-route-id="@Model.Id"
                asp-route-date="@nextDate.ToString("yyyy-MM-dd")"
                class="btn btn-outline-secondary btn-sm">
                 Next<i class="bi bi-chevron-right ms-1"></i>
