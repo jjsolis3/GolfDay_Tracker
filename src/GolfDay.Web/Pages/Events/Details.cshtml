@@ -1,0 +1,492 @@
+@page "{id:int}"
+@model GolfDay.Web.Pages.Events.EventDetailsModel
+@using GolfDay.Domain.Enums
+@{
+    ViewData["Title"] = Model.Event?.Name ?? "Event Details";
+    var ev = Model.Event!;
+    var isLive = ev.Status == EventStatus.InProgress;
+    var isCompleted = ev.Status == EventStatus.Completed;
+    var isScheduled = ev.Status == EventStatus.Scheduled;
+}
+
+@if (Model.Event == null)
+{
+    <div class="container py-5 text-center">
+        <i class="bi bi-calendar-x display-1 text-muted"></i>
+        <h3 class="mt-3">Event Not Found</h3>
+        <a asp-page="/Events/Index" class="btn btn-outline-success mt-3">Back to Events</a>
+    </div>
+    return;
+}
+
+@section Styles {
+    <style>
+        .event-hero {
+            background: linear-gradient(135deg, #1a3c2e 0%, #2d6a4f 50%, #40916c 100%);
+            color: white;
+            padding: 3rem 0 2rem;
+        }
+        .event-hero.live {
+            background: linear-gradient(135deg, #7b0000 0%, #c0392b 50%, #e74c3c 100%);
+        }
+        .event-hero.completed {
+            background: linear-gradient(135deg, #1a1a2e 0%, #374151 50%, #6b7280 100%);
+        }
+        .status-badge-hero {
+            font-size: 0.9rem;
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+        }
+        .animate-pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @@keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .stat-card {
+            border: none;
+            border-radius: 12px;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .achievement-badge {
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,.08);
+        }
+        .participant-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #2d6a4f;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .leaderboard-pos-1 { background: linear-gradient(90deg, #fff8dc, #fffef0); }
+        .leaderboard-pos-2 { background: linear-gradient(90deg, #f5f5f5, #fafafa); }
+        .leaderboard-pos-3 { background: linear-gradient(90deg, #fff3e0, #fffbf5); }
+        .score-to-par.under { color: #c0392b; font-weight: 700; }
+        .score-to-par.over { color: #2980b9; }
+        .score-to-par.even { color: #27ae60; font-weight: 600; }
+    </style>
+}
+
+<!-- Hero Header -->
+<div class="event-hero @(isLive ? "live" : isCompleted ? "completed" : "")">
+    <div class="container-fluid px-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <nav aria-label="breadcrumb" class="mb-2">
+                    <ol class="breadcrumb mb-0" style="--bs-breadcrumb-divider-color:rgba(255,255,255,.5)">
+                        <li class="breadcrumb-item">
+                            <a asp-page="/Events/Index" class="text-white-50 text-decoration-none">Events</a>
+                        </li>
+                        <li class="breadcrumb-item text-white active" aria-current="page">@ev.Name</li>
+                    </ol>
+                </nav>
+
+                <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                    @if (isLive)
+                    {
+                        <span class="badge bg-white text-danger status-badge-hero animate-pulse">
+                            <i class="bi bi-broadcast me-1"></i>LIVE NOW
+                        </span>
+                    }
+                    else if (isCompleted)
+                    {
+                        <span class="badge bg-secondary status-badge-hero">
+                            <i class="bi bi-check-circle me-1"></i>Completed
+                        </span>
+                    }
+                    else if (isScheduled)
+                    {
+                        <span class="badge bg-primary status-badge-hero">
+                            <i class="bi bi-calendar-check me-1"></i>Scheduled
+                        </span>
+                    }
+                    else if (ev.Status == EventStatus.Cancelled)
+                    {
+                        <span class="badge bg-dark status-badge-hero">
+                            <i class="bi bi-x-circle me-1"></i>Cancelled
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark status-badge-hero">@ev.Status</span>
+                    }
+                    <span class="text-white-50">@ev.EventType</span>
+                </div>
+
+                <h1 class="display-5 fw-bold mb-2">@ev.Name</h1>
+
+                <div class="d-flex flex-wrap gap-3 text-white-75 fs-6">
+                    <span><i class="bi bi-calendar3 me-2"></i>@ev.EventDate.ToString("dddd, MMMM d, yyyy")</span>
+                    <span><i class="bi bi-building me-2"></i>@ev.Club.Name</span>
+                    @if (ev.Course != null)
+                    {
+                        <span><i class="bi bi-geo-alt me-2"></i>@ev.Course.Name</span>
+                    }
+                    @if (!string.IsNullOrEmpty(ev.Format))
+                    {
+                        <span><i class="bi bi-diagram-3 me-2"></i>@ev.Format</span>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <div class="d-flex gap-2 justify-content-lg-end flex-wrap">
+                    @if (isLive)
+                    {
+                        <a asp-page="/Scoring/Live" asp-route-eventId="@ev.Id"
+                           class="btn btn-white btn-lg text-danger fw-bold shadow">
+                            <i class="bi bi-broadcast me-2"></i>Live Scoring
+                        </a>
+                    }
+                    <a asp-page="/Events/Index" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-1"></i>All Events
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- Key Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card stat-card shadow-sm text-center p-3">
+                <div class="text-success mb-1"><i class="bi bi-people fs-4"></i></div>
+                <div class="fw-bold fs-4">@ev.Participants.Count</div>
+                <div class="text-muted small">Participants</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card stat-card shadow-sm text-center p-3">
+                <div class="text-success mb-1"><i class="bi bi-flag fs-4"></i></div>
+                <div class="fw-bold fs-4">@(ev.Course?.NumberOfHoles ?? 18)</div>
+                <div class="text-muted small">Holes</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card stat-card shadow-sm text-center p-3">
+                <div class="text-success mb-1"><i class="bi bi-graph-up fs-4"></i></div>
+                <div class="fw-bold fs-4">@ev.Rounds.Count(r => r.Status == RoundStatus.Completed)</div>
+                <div class="text-muted small">Rounds In</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card stat-card shadow-sm text-center p-3">
+                <div class="text-success mb-1"><i class="bi bi-star fs-4"></i></div>
+                <div class="fw-bold fs-4">@ev.Achievements.Count</div>
+                <div class="text-muted small">Achievements</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column -->
+        <div class="col-xl-8">
+
+            <!-- Live Leaderboard (when InProgress) -->
+            @if (isLive && Model.Leaderboard.Any())
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-danger text-white d-flex align-items-center justify-content-between">
+                        <span class="fw-semibold">
+                            <i class="bi bi-broadcast me-2 animate-pulse"></i>Live Leaderboard
+                        </span>
+                        <span class="badge bg-white text-danger">Updates Automatically</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="leaderboard-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3" style="width:50px">Pos</th>
+                                        <th>Player</th>
+                                        <th class="text-center">Thru</th>
+                                        <th class="text-center">Gross</th>
+                                        <th class="text-center">+/-</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ int lbPos = 1; }
+                                    @foreach (var entry in Model.Leaderboard)
+                                    {
+                                        var rowClass = lbPos == 1 ? "leaderboard-pos-1" : lbPos == 2 ? "leaderboard-pos-2" : lbPos == 3 ? "leaderboard-pos-3" : "";
+                                        var scoreToPar = entry.ScoreToPar;
+                                        var scoreClass = scoreToPar < 0 ? "under" : scoreToPar > 0 ? "over" : "even";
+                                        var scoreStr = scoreToPar < 0 ? scoreToPar.ToString() : scoreToPar > 0 ? $"+{scoreToPar}" : "E";
+                                        <tr class="@rowClass" data-round-id="@entry.RoundId">
+                                            <td class="ps-3 fw-bold">
+                                                @if (lbPos == 1)
+                                                {
+                                                    <i class="bi bi-trophy-fill text-warning me-1"></i>
+                                                }
+                                                @lbPos
+                                            </td>
+                                            <td>
+                                                <span class="fw-medium">@entry.PlayerName</span>
+                                                @if (entry.IsInProgress)
+                                                {
+                                                    <span class="badge bg-success ms-2 small">Active</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">@(entry.HolesCompleted == 18 ? "F" : entry.HolesCompleted.ToString())</td>
+                                            <td class="text-center fw-semibold leaderboard-gross">@(entry.GrossScore?.ToString() ?? "-")</td>
+                                            <td class="text-center score-to-par @scoreClass leaderboard-stp">@scoreStr</td>
+                                        </tr>
+                                        lbPos++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent text-center">
+                        <a asp-page="/Scoring/Live" asp-route-eventId="@ev.Id" class="btn btn-danger btn-sm">
+                            <i class="bi bi-broadcast me-1"></i>Open Full Live Scoring
+                        </a>
+                    </div>
+                </div>
+            }
+
+            <!-- Final Leaderboard (when Completed) -->
+            @if (isCompleted && Model.Leaderboard.Any())
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex align-items-center">
+                        <i class="bi bi-trophy me-2 text-warning"></i>
+                        <span class="fw-semibold">Final Results</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3" style="width:50px">Pos</th>
+                                        <th>Player</th>
+                                        <th class="text-center">Gross</th>
+                                        <th class="text-center">Net</th>
+                                        <th class="text-center">+/-</th>
+                                        <th class="text-center">Birdies</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ int pos = 1; }
+                                    @foreach (var entry in Model.Leaderboard)
+                                    {
+                                        var rowClass = pos == 1 ? "leaderboard-pos-1" : pos == 2 ? "leaderboard-pos-2" : pos == 3 ? "leaderboard-pos-3" : "";
+                                        var scoreToPar = entry.ScoreToPar;
+                                        var scoreClass = scoreToPar < 0 ? "under" : scoreToPar > 0 ? "over" : "even";
+                                        var scoreStr = scoreToPar < 0 ? scoreToPar.ToString() : scoreToPar > 0 ? $"+{scoreToPar}" : "E";
+                                        <tr class="@rowClass">
+                                            <td class="ps-3 fw-bold">
+                                                @if (pos == 1) { <i class="bi bi-trophy-fill text-warning me-1"></i> }
+                                                else if (pos == 2) { <i class="bi bi-trophy-fill text-secondary me-1" style="opacity:.6"></i> }
+                                                else if (pos == 3) { <i class="bi bi-trophy-fill text-warning me-1" style="color:#cd7f32!important"></i> }
+                                                @pos
+                                            </td>
+                                            <td class="fw-medium">@entry.PlayerName</td>
+                                            <td class="text-center fw-semibold">@(entry.GrossScore?.ToString() ?? "-")</td>
+                                            <td class="text-center">@(entry.NetScore?.ToString() ?? "-")</td>
+                                            <td class="text-center score-to-par @scoreClass">@scoreStr</td>
+                                            <td class="text-center">@(entry.Birdies?.ToString() ?? "-")</td>
+                                        </tr>
+                                        pos++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Participants List -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold"><i class="bi bi-people me-2 text-success"></i>Participants</span>
+                    <span class="badge bg-success rounded-pill">@ev.Participants.Count / @ev.MaxParticipants</span>
+                </div>
+                <div class="card-body">
+                    @if (!ev.Participants.Any())
+                    {
+                        <p class="text-muted text-center py-3 mb-0">No participants registered yet.</p>
+                    }
+                    else
+                    {
+                        <div class="row g-2">
+                            @foreach (var p in ev.Participants.OrderBy(p => p.RegisteredAt))
+                            {
+                                var initials = string.Concat(
+                                    p.User.FirstName?.Length > 0 ? p.User.FirstName[0].ToString() : "",
+                                    p.User.LastName?.Length > 0 ? p.User.LastName[0].ToString() : "");
+                                <div class="col-sm-6 col-md-4">
+                                    <div class="d-flex align-items-center gap-2 p-2 rounded bg-light">
+                                        <div class="participant-avatar">@initials</div>
+                                        <div class="min-w-0">
+                                            <div class="fw-medium text-truncate small">@p.User.FullName</div>
+                                            @if (!string.IsNullOrEmpty(p.TeeTime))
+                                            {
+                                                <div class="text-muted" style="font-size:.75rem">
+                                                    <i class="bi bi-clock me-1"></i>@p.TeeTime
+                                                </div>
+                                            }
+                                            @if (p.CheckedIn)
+                                            {
+                                                <span class="badge bg-success" style="font-size:.7rem">Checked In</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-xl-4">
+
+            <!-- Event Details Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <span class="fw-semibold"><i class="bi bi-info-circle me-2 text-success"></i>Event Details</span>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted">Date</dt>
+                        <dd class="col-7">@ev.EventDate.ToString("MMM d, yyyy")</dd>
+
+                        @if (ev.EndDate.HasValue)
+                        {
+                            <dt class="col-5 text-muted">End Date</dt>
+                            <dd class="col-7">@ev.EndDate.Value.ToString("MMM d, yyyy")</dd>
+                        }
+
+                        <dt class="col-5 text-muted">Club</dt>
+                        <dd class="col-7">@ev.Club.Name</dd>
+
+                        @if (ev.Course != null)
+                        {
+                            <dt class="col-5 text-muted">Course</dt>
+                            <dd class="col-7">@ev.Course.Name</dd>
+
+                            <dt class="col-5 text-muted">Par</dt>
+                            <dd class="col-7">@ev.Course.ParTotal</dd>
+
+                            @if (ev.Course.CourseRating.HasValue)
+                            {
+                                <dt class="col-5 text-muted">Rating</dt>
+                                <dd class="col-7">@ev.Course.CourseRating.Value.ToString("F1")</dd>
+                            }
+                            @if (ev.Course.SlopeRating.HasValue)
+                            {
+                                <dt class="col-5 text-muted">Slope</dt>
+                                <dd class="col-7">@ev.Course.SlopeRating.Value.ToString("F0")</dd>
+                            }
+                        }
+
+                        @if (!string.IsNullOrEmpty(ev.Format))
+                        {
+                            <dt class="col-5 text-muted">Format</dt>
+                            <dd class="col-7">@ev.Format</dd>
+                        }
+
+                        <dt class="col-5 text-muted">Handicaps</dt>
+                        <dd class="col-7">@(ev.UseHandicaps ? "Yes" : "No")</dd>
+
+                        @if (!string.IsNullOrEmpty(ev.TeeBoxColor))
+                        {
+                            <dt class="col-5 text-muted">Tees</dt>
+                            <dd class="col-7">@ev.TeeBoxColor</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Achievements Section -->
+            @if (ev.Achievements.Any())
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom">
+                        <span class="fw-semibold"><i class="bi bi-award me-2 text-warning"></i>Achievements</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-column gap-2">
+                            @foreach (var ach in ev.Achievements.OrderBy(a => a.Type))
+                            {
+                                var (achIcon, achColor) = ach.Type switch
+                                {
+                                    AchievementType.LongestDrive => ("bi-lightning-fill", "warning"),
+                                    AchievementType.ClosestToPin => ("bi-bullseye", "danger"),
+                                    AchievementType.HoleInOne => ("bi-stars", "warning"),
+                                    AchievementType.MostBirdies => ("bi-feather", "success"),
+                                    AchievementType.MostEagles => ("bi-award-fill", "success"),
+                                    AchievementType.BestGrossScore => ("bi-trophy-fill", "warning"),
+                                    AchievementType.BestNetScore => ("bi-trophy", "info"),
+                                    _ => ("bi-star-fill", "primary")
+                                };
+                                <div class="d-flex align-items-start gap-2 p-2 achievement-badge bg-light">
+                                    <div class="text-@achColor pt-1"><i class="bi @achIcon"></i></div>
+                                    <div>
+                                        <div class="fw-medium small">@ach.Type.ToString().Replace("Most", "Most ").Replace("Best", "Best ").Replace("Longest", "Longest ").Replace("Closest", "Closest ")</div>
+                                        <div class="text-muted" style="font-size:.8rem">@ach.User.FullName</div>
+                                        @if (!string.IsNullOrEmpty(ach.Description))
+                                        {
+                                            <div class="text-success" style="font-size:.8rem">@ach.Description</div>
+                                        }
+                                        @if (ach.ValueYards.HasValue)
+                                        {
+                                            <div class="text-muted" style="font-size:.75rem">@ach.ValueYards yards</div>
+                                        }
+                                        @if (ach.ValueFeet.HasValue)
+                                        {
+                                            <div class="text-muted" style="font-size:.75rem">@ach.ValueFeet ft @(ach.ValueInches.HasValue ? $"{ach.ValueInches} in" : "")</div>
+                                        }
+                                        @if (ach.HoleNumber.HasValue)
+                                        {
+                                            <div class="text-muted" style="font-size:.75rem">Hole @ach.HoleNumber</div>
+                                        }
+                                        @if (ach.IsVerified)
+                                        {
+                                            <span class="badge bg-success" style="font-size:.7rem"><i class="bi bi-check-circle me-1"></i>Verified</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Event Description / Rules -->
+            @if (!string.IsNullOrEmpty(ev.Description) || !string.IsNullOrEmpty(ev.Rules))
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom">
+                        <span class="fw-semibold"><i class="bi bi-file-text me-2 text-success"></i>About This Event</span>
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(ev.Description))
+                        {
+                            <p class="text-muted small mb-2">@ev.Description</p>
+                        }
+                        @if (!string.IsNullOrEmpty(ev.Rules))
+                        {
+                            <h6 class="fw-semibold mb-1">Rules</h6>
+                            <p class="text-muted small mb-0">@ev.Rules</p>
+                        }
+                    </div>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>

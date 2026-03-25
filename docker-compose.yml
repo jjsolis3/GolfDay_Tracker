@@ -1,0 +1,53 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: golfday-web
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=db;Database=GolfDayTracker;User Id=sa;Password=${DB_PASSWORD:-GolfDay@2024!};TrustServerCertificate=True
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - golfday-logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - golfday-net
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: golfday-db
+    environment:
+      - SA_PASSWORD=${DB_PASSWORD:-GolfDay@2024!}
+      - ACCEPT_EULA=Y
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - golfday-db:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$$SA_PASSWORD" -Q "SELECT 1" -b
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - golfday-net
+
+volumes:
+  golfday-db:
+    driver: local
+  golfday-logs:
+    driver: local
+
+networks:
+  golfday-net:
+    driver: bridge

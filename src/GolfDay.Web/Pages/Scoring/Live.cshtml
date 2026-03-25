@@ -1,0 +1,256 @@
+@page "{eventId:int}"
+@model GolfDay.Web.Pages.Scoring.LiveModel
+@{
+    ViewData["Title"] = $"Live Scoring — {Model.Event?.Name}";
+}
+
+@if (Model.Event == null)
+{
+    <div class="container py-5 text-center">
+        <h2>Event not found</h2>
+        <a asp-page="/Events/Index" class="btn btn-success mt-3">Back to Events</a>
+    </div>
+    return;
+}
+
+<div class="container-fluid py-3">
+    <!-- Header Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+        <div>
+            <h4 class="mb-0 fw-bold">
+                <span class="badge bg-danger badge-live me-2">LIVE</span>
+                @Model.Event.Name
+            </h4>
+            <small class="text-muted">
+                <i class="bi bi-geo-alt me-1"></i>@Model.Event.Course?.Name •
+                <i class="bi bi-calendar me-1 ms-1"></i>@Model.Event.EventDate.ToString("MMM d, yyyy")
+            </small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span id="connection-status" class="badge bg-secondary">Connecting...</span>
+            <a asp-page="/Events/Details" asp-route-id="@Model.Event.Id" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Event
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Leaderboard (left/top) -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-success text-white fw-bold">
+                    <i class="bi bi-list-ol me-2"></i>Live Leaderboard
+                    <span class="float-end small opacity-75">@Model.Leaderboard.Count players</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 leaderboard-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:40px">#</th>
+                                <th>Player</th>
+                                <th class="text-center" style="width:50px">Thru</th>
+                                <th class="text-center" style="width:60px">Score</th>
+                                <th class="text-center" style="width:60px">+/-</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            @{int rank = 1;}
+                            @foreach (var entry in Model.Leaderboard)
+                            {
+                                var parTotal = Model.Event.Course?.ParTotal ?? 72;
+                                var toPar = (entry.GrossScore ?? 0) - parTotal;
+                                <tr id="leaderboard-row-@entry.RoundId" class="@(rank <= 3 ? $"position-{rank}" : "")">
+                                    <td>
+                                        <span class="rank-badge @(rank == 1 ? "rank-1" : rank == 2 ? "rank-2" : rank == 3 ? "rank-3" : "bg-light text-dark") col-rank">@rank</span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold">@entry.PlayerName</span>
+                                        @if (!string.IsNullOrEmpty(entry.HandicapStr))
+                                        {
+                                            <small class="text-muted ms-1">(@entry.HandicapStr)</small>
+                                        }
+                                    </td>
+                                    <td class="text-center col-thru">@(entry.HolesCompleted > 0 ? entry.HolesCompleted.ToString() : "-")</td>
+                                    <td class="text-center fw-bold col-score">@(entry.GrossScore.HasValue ? entry.GrossScore.Value.ToString() : "-")</td>
+                                    <td class="text-center">
+                                        @if (entry.GrossScore.HasValue && entry.HolesCompleted > 0)
+                                        {
+                                            <span class="@(toPar < 0 ? "score-eagle-text" : toPar == 0 ? "score-par-text" : "score-bogey-text") fw-bold">
+                                                @(toPar == 0 ? "E" : (toPar > 0 ? $"+{toPar}" : toPar.ToString()))
+                                            </span>
+                                        }
+                                        else { <span class="text-muted">-</span> }
+                                    </td>
+                                </tr>
+                                rank++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scorecard (right/bottom) - only shown to authenticated participants -->
+        @if (User.Identity?.IsAuthenticated == true && Model.UserRound != null)
+        {
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <span class="fw-bold"><i class="bi bi-clipboard me-2"></i>My Scorecard</span>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="text-center">
+                                <div class="small opacity-75">Score</div>
+                                <div class="fw-bold fs-5" id="score-total">-</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="small opacity-75">To Par</div>
+                                <div class="fw-bold fs-5 text-warning" id="score-to-par">-</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="small opacity-75">Thru</div>
+                                <div class="fw-bold fs-5" id="score-thru">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered scorecard-table mb-2">
+                                <thead>
+                                    <tr>
+                                        <th class="hole-header" style="width:60px">Hole</th>
+                                        @for (int h = 1; h <= 9; h++)
+                                        {
+                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
+                                            <th class="hole-header text-center" style="min-width:42px">
+                                                <span class="par-circle par-@(hole?.Par ?? 4) d-inline-flex">@h</span>
+                                            </th>
+                                        }
+                                        <th class="hole-header text-center bg-success bg-opacity-75">OUT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="par-row fw-bold">Par</td>
+                                        @{int outPar = 0;}
+                                        @for (int h = 1; h <= 9; h++)
+                                        {
+                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
+                                            var par = hole?.Par ?? 4;
+                                            outPar += par;
+                                            <td class="par-row text-center">@par</td>
+                                        }
+                                        <td class="par-row text-center fw-bold">@outPar</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold small text-muted">Score</td>
+                                        @{int outScore = 0;}
+                                        @for (int h = 1; h <= 9; h++)
+                                        {
+                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
+                                            var existingScore = Model.HoleScores.FirstOrDefault(s => s.HoleNumber == h);
+                                            <td class="score-input-cell">
+                                                <input type="number" min="1" max="15"
+                                                       class="hole-score-input"
+                                                       data-hole="@h"
+                                                       data-par="@(hole?.Par ?? 4)"
+                                                       value="@existingScore?.Strokes"
+                                                       onchange="onHoleScoreChange(this, @Model.UserRound.Id)"
+                                                       oninput="onHoleScoreChange(this, @Model.UserRound.Id)" />
+                                            </td>
+                                        }
+                                        <td class="text-center fw-bold" id="out-score">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Back 9 -->
+                            <table class="table table-sm table-bordered scorecard-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="hole-header" style="width:60px">Hole</th>
+                                        @for (int h = 10; h <= 18; h++)
+                                        {
+                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
+                                            <th class="hole-header text-center" style="min-width:42px">
+                                                <span class="par-circle par-@(hole?.Par ?? 4) d-inline-flex">@h</span>
+                                            </th>
+                                        }
+                                        <th class="hole-header text-center bg-success bg-opacity-75">IN</th>
+                                        <th class="hole-header text-center bg-success">TOT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="par-row fw-bold">Par</td>
+                                        @{int inPar = 0;}
+                                        @for (int h = 10; h <= 18; h++)
+                                        {
+                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
+                                            var par = hole?.Par ?? 4;
+                                            inPar += par;
+                                            <td class="par-row text-center">@par</td>
+                                        }
+                                        <td class="par-row text-center fw-bold">@inPar</td>
+                                        <td class="par-row text-center fw-bold">@(outPar + inPar)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold small text-muted">Score</td>
+                                        @for (int h = 10; h <= 18; h++)
+                                        {
+                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
+                                            var existingScore = Model.HoleScores.FirstOrDefault(s => s.HoleNumber == h);
+                                            <td class="score-input-cell">
+                                                <input type="number" min="1" max="15"
+                                                       class="hole-score-input"
+                                                       data-hole="@h"
+                                                       data-par="@(hole?.Par ?? 4)"
+                                                       value="@existingScore?.Strokes"
+                                                       onchange="onHoleScoreChange(this, @Model.UserRound.Id)"
+                                                       oninput="onHoleScoreChange(this, @Model.UserRound.Id)" />
+                                            </td>
+                                        }
+                                        <td class="text-center fw-bold" id="in-score">-</td>
+                                        <td class="text-center fw-bold" id="total-score">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="text-end mt-2">
+                            <button id="complete-round-btn" onclick="completeRound(@Model.UserRound.Id)"
+                                    class="btn btn-success px-4"
+                                    @(Model.UserRound.Status == GolfDay.Domain.Enums.RoundStatus.Completed ? "disabled" : "")>
+                                <i class="bi bi-check-circle me-2"></i>
+                                @(Model.UserRound.Status == GolfDay.Domain.Enums.RoundStatus.Completed ? "Round Completed" : "Complete Round")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (User.Identity?.IsAuthenticated == false)
+        {
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm text-center p-5">
+                    <i class="bi bi-person-lock fs-1 text-muted mb-3"></i>
+                    <h5>Sign in to enter your scores</h5>
+                    <a asp-page="/Account/Login" class="btn btn-success mt-2">Sign In</a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/scoring.js" asp-append-version="true"></script>
+    <script>
+        // Initialize live scoring
+        document.addEventListener('DOMContentLoaded', function () {
+            const eventId = @Model.Event.Id;
+            const roundId = @(Model.UserRound?.Id.ToString() ?? "null");
+            initScoringHub(eventId, roundId);
+            updateRunningTotal();
+        });
+    </script>
+}

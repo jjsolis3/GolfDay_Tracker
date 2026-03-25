@@ -1,0 +1,154 @@
+@page "{id:int}"
+@model GolfDay.Web.Pages.Tournaments.TournamentDetailsModel
+@{
+    ViewData["Title"] = Model.Tournament?.Name ?? "Tournament";
+}
+
+@if (Model.Tournament == null)
+{
+    <div class="container py-5 text-center"><h2>Tournament not found</h2></div>
+    return;
+}
+
+<!-- Header -->
+<div class="bg-warning bg-opacity-10 border-bottom py-4 mb-4">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col">
+                <span class="badge @(Model.Tournament.Status == GolfDay.Domain.Enums.TournamentStatus.Active ? "bg-success" : "bg-secondary") mb-2">@Model.Tournament.Status</span>
+                <h1 class="fw-bold mb-1">@Model.Tournament.Name</h1>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-building me-1"></i>@Model.Tournament.Club.Name
+                    <span class="mx-2">•</span>
+                    <i class="bi bi-calendar me-1"></i>@Model.Tournament.StartDate.ToString("MMM d") – @Model.Tournament.EndDate.ToString("MMM d, yyyy")
+                    <span class="mx-2">•</span>
+                    <i class="bi bi-trophy me-1"></i>@Model.Tournament.Format
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <ul class="nav nav-tabs mb-4" id="tournamentTabs">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#leaderboard">Leaderboard</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#entries">Entries (@Model.Tournament.Entries.Count)</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#info">Info</a></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Leaderboard Tab -->
+        <div class="tab-pane fade show active" id="leaderboard">
+            @if (!Model.RankedEntries.Any())
+            {
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-hourglass fs-2 d-block mb-2"></i>No scores posted yet
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 leaderboard-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Player</th>
+                                    @for (int r = 1; r <= Model.Tournament.NumberOfRounds; r++)
+                                    {
+                                        <th class="text-center">R@r</th>
+                                    }
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Net</th>
+                                    @if (!string.IsNullOrEmpty(Model.RankedEntries.FirstOrDefault()?.Prize))
+                                    {
+                                        <th class="text-center">Prize</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in Model.RankedEntries)
+                                {
+                                    <tr class="@(entry.FinalPosition <= 3 ? $"position-{entry.FinalPosition}" : "")">
+                                        <td>
+                                            <span class="rank-badge @(entry.FinalPosition == 1 ? "rank-1" : entry.FinalPosition == 2 ? "rank-2" : entry.FinalPosition == 3 ? "rank-3" : "bg-light text-dark")">
+                                                @entry.FinalPosition
+                                            </span>
+                                        </td>
+                                        <td class="fw-semibold">@entry.User.FullName</td>
+                                        @for (int r = 1; r <= Model.Tournament.NumberOfRounds; r++)
+                                        {
+                                            var roundScore = Model.RoundScores.GetValueOrDefault((entry.UserId, r));
+                                            <td class="text-center">@(roundScore > 0 ? roundScore.ToString() : "-")</td>
+                                        }
+                                        <td class="text-center fw-bold">@(entry.TotalGrossScore?.ToString() ?? "-")</td>
+                                        <td class="text-center text-muted">@(entry.TotalNetScore?.ToString() ?? "-")</td>
+                                        @if (!string.IsNullOrEmpty(Model.RankedEntries.FirstOrDefault()?.Prize))
+                                        {
+                                            <td class="text-center text-warning small">@entry.Prize</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Entries Tab -->
+        <div class="tab-pane fade" id="entries">
+            <div class="row g-2">
+                @foreach (var entry in Model.Tournament.Entries.Where(e => e.Status != GolfDay.Domain.Enums.EntryStatus.Withdrawn))
+                {
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center gap-2 p-2 border rounded">
+                            <div class="profile-avatar bg-success text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:36px;height:36px;font-size:0.9rem">
+                                @(entry.User.FirstName?.Substring(0, 1))@(entry.User.LastName?.Substring(0, 1))
+                            </div>
+                            <div>
+                                <div class="fw-semibold small">@entry.User.FullName</div>
+                                @if (entry.HandicapAtEntry.HasValue)
+                                {
+                                    <small class="text-muted">HCP @entry.HandicapAtEntry.Value.ToString("F1")</small>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Info Tab -->
+        <div class="tab-pane fade" id="info">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    @if (!string.IsNullOrEmpty(Model.Tournament.Description))
+                    {
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-header bg-transparent fw-bold">About</div>
+                            <div class="card-body">@Model.Tournament.Description</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Tournament.Rules))
+                    {
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-header bg-transparent fw-bold">Rules</div>
+                            <div class="card-body"><pre class="mb-0" style="white-space:pre-wrap">@Model.Tournament.Rules</pre></div>
+                        </div>
+                    }
+                </div>
+                <div class="col-md-6">
+                    @if (!string.IsNullOrEmpty(Model.Tournament.Prizes))
+                    {
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-header bg-transparent fw-bold"><i class="bi bi-gift me-2"></i>Prizes</div>
+                            <div class="card-body"><pre class="mb-0" style="white-space:pre-wrap">@Model.Tournament.Prizes</pre></div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,26 @@
+@page
+@model GolfDay.Web.Pages.ErrorModel
+@{
+    ViewData["Title"] = "Error";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<div class="container py-5 text-center">
+    <div class="py-5">
+        <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 5rem;"></i>
+        <h1 class="display-4 fw-bold mt-3">Something went wrong</h1>
+        <p class="lead text-muted">We encountered an unexpected error. Please try again.</p>
+        @if (Model.ShowRequestId)
+        {
+            <p class="text-muted small">Request ID: <code>@Model.RequestId</code></p>
+        }
+        <div class="mt-4">
+            <a asp-page="/Index" class="btn btn-success btn-lg me-3">
+                <i class="bi bi-house me-2"></i>Return Home
+            </a>
+            <button onclick="history.back()" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-arrow-left me-2"></i>Go Back
+            </button>
+        </div>
+    </div>
+</div>

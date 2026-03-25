@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GolfDay Tracker</title>
+    <!-- Bootstrap 5 via CDN (replace with local files in production) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold" asp-page="/Index">
+                    <i class="bi bi-flag-fill me-2"></i>GolfDay Tracker
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
+                        aria-controls="navbarMain" aria-expanded="false">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarMain">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Events/Index">
+                                <i class="bi bi-calendar-event me-1"></i>Events
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Tournaments/Index">
+                                <i class="bi bi-trophy me-1"></i>Tournaments
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/League/Index">
+                                <i class="bi bi-people me-1"></i>Leagues
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Club/Leaderboard">
+                                <i class="bi bi-bar-chart me-1"></i>Standings
+                            </a>
+                        </li>
+                    </ul>
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            @if (User.IsInRole("Admin") || User.IsInRole("ClubManager"))
+                            {
+                                <li class="nav-item me-2">
+                                    <a class="nav-link" asp-area="Admin" asp-page="/Index">
+                                        <i class="bi bi-gear-fill me-1"></i>Admin
+                                    </a>
+                                </li>
+                            }
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="profile-avatar bg-white text-success rounded-circle d-inline-flex align-items-center justify-content-center me-2"
+                                          style="width:28px;height:28px;font-size:0.8rem;font-weight:700;">
+                                        @(User.Identity.Name?.Substring(0, 1)?.ToUpper() ?? "?")
+                                    </span>
+                                    @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow">
+                                    <li><a class="dropdown-item" asp-page="/Account/Profile"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Player/Stats"><i class="bi bi-graph-up me-2"></i>My Stats</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Player/Rounds"><i class="bi bi-list-ol me-2"></i>My Rounds</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="post" asp-page="/Account/Logout">
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Account/Login">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+                                </a>
+                            </li>
+                            <li class="nav-item ms-2">
+                                <a class="btn btn-warning btn-sm px-3" asp-page="/Account/Register">Join Free</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show m-3 mb-0 shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show m-3 mb-0 shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @RenderBody()
+    </main>
+
+    <!-- Live notification toast container -->
+    <div id="live-notifications" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999"></div>
+
+    <footer class="footer py-4 bg-dark text-white mt-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <span class="fw-bold"><i class="bi bi-flag-fill me-2 text-success"></i>GolfDay Tracker</span>
+                    <span class="text-muted ms-3">&copy; @DateTime.Now.Year — Built for Golf Clubs</span>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="#" class="text-muted text-decoration-none small me-3">Privacy Policy</a>
+                    <a href="#" class="text-muted text-decoration-none small me-3">Terms of Use</a>
+                    <a href="#" class="text-muted text-decoration-none small">Contact</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

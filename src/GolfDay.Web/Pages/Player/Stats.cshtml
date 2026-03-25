@@ -1,0 +1,281 @@
+@page
+@model GolfDay.Web.Pages.Player.StatsModel
+@{
+    ViewData["Title"] = "My Stats";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0"><i class="bi bi-graph-up me-2 text-success"></i>My Stats</h2>
+        <div class="d-flex gap-2">
+            <select id="year-selector" class="form-select form-select-sm w-auto" onchange="window.location='?year='+this.value">
+                @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 5; y--)
+                {
+                    <option value="@y" selected="@(y == Model.SelectedYear)">@y Season</option>
+                }
+            </select>
+            @if (Model.Clubs.Count > 1)
+            {
+                <select class="form-select form-select-sm w-auto" onchange="window.location='?year=@Model.SelectedYear&clubId='+this.value">
+                    @foreach (var club in Model.Clubs)
+                    {
+                        <option value="@club.Id" selected="@(club.Id == Model.SelectedClubId)">@club.Name</option>
+                    }
+                </select>
+            }
+        </div>
+    </div>
+
+    @if (Model.Stats == null || Model.Stats.RoundsPlayed == 0)
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-bar-chart fs-1 text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">No rounds recorded for @Model.SelectedYear</h5>
+            <a asp-page="/Events/Index" class="btn btn-success mt-2">Find an Event</a>
+        </div>
+        return;
+    }
+
+    <!-- Key Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card stat-card border-0 shadow-sm text-center p-3">
+                <div class="stat-icon bg-success bg-opacity-10 mx-auto mb-2">
+                    <i class="bi bi-flag text-success"></i>
+                </div>
+                <div class="fs-2 fw-bold text-success">@Model.Stats.RoundsPlayed</div>
+                <div class="text-muted small">Rounds Played</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card stat-card border-0 shadow-sm text-center p-3">
+                <div class="stat-icon bg-primary bg-opacity-10 mx-auto mb-2">
+                    <i class="bi bi-calculator text-primary"></i>
+                </div>
+                <div class="fs-2 fw-bold text-primary">@(Model.Stats.AverageGrossScore?.ToString("F1") ?? "-")</div>
+                <div class="text-muted small">Average Score</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card stat-card border-0 shadow-sm text-center p-3">
+                <div class="stat-icon bg-warning bg-opacity-10 mx-auto mb-2">
+                    <i class="bi bi-trophy text-warning"></i>
+                </div>
+                <div class="fs-2 fw-bold text-warning">@(Model.Stats.BestGrossScore?.ToString() ?? "-")</div>
+                <div class="text-muted small">Best Round</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card stat-card border-0 shadow-sm text-center p-3">
+                <div class="stat-icon bg-info bg-opacity-10 mx-auto mb-2">
+                    <i class="bi bi-person-badge text-info"></i>
+                </div>
+                <div class="fs-2 fw-bold text-info">@(Model.Stats.HandicapIndexEnd?.ToString("F1") ?? "-")</div>
+                <div class="text-muted small">Handicap Index</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Scoring Breakdown -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent fw-bold">
+                    <i class="bi bi-pie-chart me-2 text-success"></i>Scoring Breakdown
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge score-eagle me-2">Eagle+</span>Eagles or Better</td>
+                                    <td class="fw-bold text-end text-danger">@Model.Stats.TotalEagles</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge score-birdie me-2">Birdie</span>Birdies</td>
+                                    <td class="fw-bold text-end text-warning">@Model.Stats.TotalBirdiesOrBetter</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge score-par me-2">Par</span>Pars</td>
+                                    <td class="fw-bold text-end text-success">@Model.Stats.TotalPars</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge score-bogey me-2">Bogey</span>Bogeys</td>
+                                    <td class="fw-bold text-end text-muted">@Model.Stats.TotalBogeys</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge score-double me-2">D-Bogey</span>Double Bogeys</td>
+                                    <td class="fw-bold text-end text-secondary">@Model.Stats.TotalDoubleBogeys</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge score-triple me-2">3+</span>Triple or Worse</td>
+                                    <td class="fw-bold text-end">@Model.Stats.TotalTriplePlusBogeys</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Chart placeholder -->
+                    <canvas id="scoringBreakdownChart" height="180"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Management Stats -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent fw-bold">
+                    <i class="bi bi-crosshair me-2 text-success"></i>Course Management
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Fairways Hit</span>
+                            <span class="fw-bold">@(Model.Stats.FairwayHitPercent?.ToString("F1") ?? "-")%</span>
+                        </div>
+                        @if (Model.Stats.FairwayHitPercent.HasValue)
+                        {
+                            <div class="progress" style="height:8px">
+                                <div class="progress-bar bg-success" style="width:@Model.Stats.FairwayHitPercent%"></div>
+                            </div>
+                        }
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Greens in Regulation (GIR)</span>
+                            <span class="fw-bold">@(Model.Stats.GIRPercent?.ToString("F1") ?? "-")%</span>
+                        </div>
+                        @if (Model.Stats.GIRPercent.HasValue)
+                        {
+                            <div class="progress" style="height:8px">
+                                <div class="progress-bar bg-info" style="width:@Model.Stats.GIRPercent%"></div>
+                            </div>
+                        }
+                    </div>
+                    <hr>
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold fs-5">@(Model.Stats.AveragePutts?.ToString("F1") ?? "-")</div>
+                                <small class="text-muted">Avg Putts</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold fs-5">@(Model.Stats.LongestDriveYards?.ToString() ?? "-")</div>
+                                <small class="text-muted">Best Drive</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold fs-5 text-danger">@Model.Stats.TotalHoleInOnes</div>
+                                <small class="text-muted">Hole-in-Ones</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tournament History -->
+        @if (Model.TournamentEntries.Any())
+        {
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent fw-bold">
+                        <i class="bi bi-trophy me-2 text-warning"></i>Tournament History — @Model.SelectedYear
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tournament</th>
+                                    <th>Format</th>
+                                    <th class="text-center">Gross</th>
+                                    <th class="text-center">Net</th>
+                                    <th class="text-center">Position</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in Model.TournamentEntries)
+                                {
+                                    <tr>
+                                        <td><a asp-page="/Tournaments/Details" asp-route-id="@entry.TournamentId" class="text-decoration-none fw-semibold">@entry.Tournament.Name</a></td>
+                                        <td><span class="badge bg-light text-dark">@entry.Tournament.Format</span></td>
+                                        <td class="text-center fw-bold">@(entry.TotalGrossScore?.ToString() ?? "-")</td>
+                                        <td class="text-center">@(entry.TotalNetScore?.ToString() ?? "-")</td>
+                                        <td class="text-center">
+                                            @if (entry.FinalPosition.HasValue)
+                                            {
+                                                <span class="badge @(entry.FinalPosition == 1 ? "bg-warning" : entry.FinalPosition <= 3 ? "bg-success" : "bg-secondary")">
+                                                    #@entry.FinalPosition
+                                                </span>
+                                            }
+                                            else { <span class="text-muted">-</span> }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- League Stats -->
+        @if (Model.Stats.LeagueMatchesPlayed > 0)
+        {
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent fw-bold">
+                        <i class="bi bi-people me-2 text-info"></i>League Record — @Model.SelectedYear
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 text-center">
+                            <div class="col-3">
+                                <div class="fw-bold fs-3">@Model.Stats.LeagueMatchesPlayed</div>
+                                <small class="text-muted">Played</small>
+                            </div>
+                            <div class="col-3">
+                                <div class="fw-bold fs-3 text-success">@Model.Stats.LeagueMatchesWon</div>
+                                <small class="text-muted">Won</small>
+                            </div>
+                            <div class="col-3">
+                                <div class="fw-bold fs-3 text-danger">@(Model.Stats.LeagueMatchesPlayed - Model.Stats.LeagueMatchesWon)</div>
+                                <small class="text-muted">Lost</small>
+                            </div>
+                            <div class="col-3">
+                                <div class="fw-bold fs-3 text-info">@(Model.Stats.LeagueMatchesPlayed > 0 ? ((double)Model.Stats.LeagueMatchesWon / Model.Stats.LeagueMatchesPlayed * 100).ToString("F0") + "%" : "-")</div>
+                                <small class="text-muted">Win Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script>
+    const ctx = document.getElementById('scoringBreakdownChart')?.getContext('2d');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Eagles+', 'Birdies', 'Pars', 'Bogeys', 'D-Bogeys', 'Triple+'],
+                datasets: [{
+                    data: [@Model.Stats.TotalEagles, @Model.Stats.TotalBirdiesOrBetter, @Model.Stats.TotalPars, @Model.Stats.TotalBogeys, @Model.Stats.TotalDoubleBogeys, @Model.Stats.TotalTriplePlusBogeys],
+                    backgroundColor: ['#dc3545','#fd7e14','#198754','#6c757d','#495057','#212529'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+            }
+        });
+    }
+    </script>
+}

@@ -1,0 +1,69 @@
+## .NET / Visual Studio
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+bin/
+obj/
+[Pp]ackages/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## ASP.NET Core
+**/wwwroot/lib/bootstrap/
+**/wwwroot/lib/jquery/
+**/wwwroot/lib/jquery-validation/
+**/wwwroot/lib/jquery-validation-unobtrusive/
+**/wwwroot/lib/@microsoft/
+**/wwwroot/lib/chart.js/
+
+## Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+
+## Logs
+logs/
+*.log
+Logs/
+
+## EF Migrations (keep the folder, ignore compiled artifacts)
+!**/Migrations/
+
+## User Secrets
+**/appsettings.*.json
+!**/appsettings.json
+!**/appsettings.Development.json
+!**/appsettings.Production.json
+
+## Environment
+.env
+.env.*
+!.env.example
+
+## Docker
+docker-compose.override.yml
+
+## IDE
+.idea/
+.vscode/settings.json
+*.swp
+*~
+
+## OS
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,87 @@
+@page
+@model GolfDay.Web.Pages.Club.LeaderboardModel
+@{
+    ViewData["Title"] = "Season Leaderboard";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0"><i class="bi bi-bar-chart me-2 text-success"></i>Season Leaderboard</h2>
+        <div class="d-flex gap-2">
+            @if (Model.Clubs.Count > 1)
+            {
+                <select class="form-select form-select-sm w-auto" onchange="window.location='?clubId='+this.value+'&year=@Model.SelectedYear'">
+                    @foreach (var club in Model.Clubs)
+                    {
+                        <option value="@club.Id" selected="@(club.Id == Model.SelectedClubId)">@club.Name</option>
+                    }
+                </select>
+            }
+            <select class="form-select form-select-sm w-auto" onchange="window.location='?clubId=@Model.SelectedClubId&year='+this.value">
+                @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 5; y--)
+                {
+                    <option value="@y" selected="@(y == Model.SelectedYear)">@y</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (!Model.Entries.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-bar-chart-line fs-1 text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">No stats available for @Model.SelectedYear</h5>
+        </div>
+        return;
+    }
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 leaderboard-table">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th>Player</th>
+                        <th class="text-center">Rounds</th>
+                        <th class="text-center">Avg Score</th>
+                        <th class="text-center">Best</th>
+                        <th class="text-center">Birdies</th>
+                        <th class="text-center">Eagles</th>
+                        <th class="text-center">Ace</th>
+                        <th class="text-center">FH%</th>
+                        <th class="text-center">GIR%</th>
+                        <th class="text-center">HCP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Entries.Count; i++)
+                    {
+                        var entry = Model.Entries[i];
+                        var rank = i + 1;
+                        <tr class="@(rank <= 3 ? $"position-{rank}" : "")">
+                            <td>
+                                <span class="rank-badge @(rank == 1 ? "rank-1" : rank == 2 ? "rank-2" : rank == 3 ? "rank-3" : "bg-light text-dark")">@rank</span>
+                            </td>
+                            <td>
+                                <a asp-page="/Player/Stats" class="fw-semibold text-decoration-none">@entry.User.FullName</a>
+                                @if (!string.IsNullOrEmpty(entry.User.City))
+                                {
+                                    <br><small class="text-muted">@entry.User.City@(!string.IsNullOrEmpty(entry.User.State) ? $", {entry.User.State}" : "")</small>
+                                }
+                            </td>
+                            <td class="text-center">@entry.RoundsPlayed</td>
+                            <td class="text-center fw-bold">@(entry.AverageGrossScore?.ToString("F1") ?? "-")</td>
+                            <td class="text-center text-warning fw-bold">@(entry.BestGrossScore?.ToString() ?? "-")</td>
+                            <td class="text-center text-warning">@entry.TotalBirdiesOrBetter</td>
+                            <td class="text-center text-danger">@entry.TotalEagles</td>
+                            <td class="text-center text-danger fw-bold">@(entry.TotalHoleInOnes > 0 ? entry.TotalHoleInOnes.ToString() : "-")</td>
+                            <td class="text-center small">@(entry.FairwayHitPercent?.ToString("F0") != null ? entry.FairwayHitPercent.Value.ToString("F0") + "%" : "-")</td>
+                            <td class="text-center small">@(entry.GIRPercent?.ToString("F0") != null ? entry.GIRPercent.Value.ToString("F0") + "%" : "-")</td>
+                            <td class="text-center badge @(entry.HandicapIndexEnd.HasValue ? "bg-light text-dark" : "")">@(entry.HandicapIndexEnd?.ToString("F1") ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

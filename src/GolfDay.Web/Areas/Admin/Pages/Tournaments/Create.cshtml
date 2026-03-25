@@ -1,0 +1,111 @@
+@page
+@model GolfDay.Web.Areas.Admin.Pages.Tournaments.CreateTournamentModel
+@{
+    ViewData["Title"] = "Create Tournament";
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Admin</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Tournaments/Index">Tournaments</a></li>
+            <li class="breadcrumb-item active">Create</li>
+        </ol>
+    </nav>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-warning bg-opacity-10 fw-bold py-3">
+            <i class="bi bi-trophy me-2 text-warning"></i>Create New Tournament
+        </div>
+        <div class="card-body p-4">
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label asp-for="Input.Name" class="form-label fw-semibold">Tournament Name *</label>
+                        <input asp-for="Input.Name" class="form-control" placeholder="e.g. Summer Club Championship" />
+                        <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.ClubId" class="form-label fw-semibold">Club *</label>
+                        <select asp-for="Input.ClubId" asp-items="Model.ClubSelectList" class="form-select">
+                            <option value="">Select Club...</option>
+                        </select>
+                        <span asp-validation-for="Input.ClubId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Input.Description" class="form-label fw-semibold">Description</label>
+                        <textarea asp-for="Input.Description" class="form-control" rows="2" placeholder="Tournament description..."></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.Format" class="form-label fw-semibold">Format *</label>
+                        <select asp-for="Input.Format" class="form-select">
+                            @foreach (var format in Enum.GetValues<GolfDay.Domain.Enums.TournamentFormat>())
+                            {
+                                <option value="@format">@format</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.StartDate" class="form-label fw-semibold">Start Date *</label>
+                        <input asp-for="Input.StartDate" type="date" class="form-control" />
+                        <span asp-validation-for="Input.StartDate" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.EndDate" class="form-label fw-semibold">End Date *</label>
+                        <input asp-for="Input.EndDate" type="date" class="form-control" />
+                        <span asp-validation-for="Input.EndDate" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.CourseId" class="form-label fw-semibold">Course</label>
+                        <select asp-for="Input.CourseId" asp-items="Model.CourseSelectList" class="form-select">
+                            <option value="">Select Course...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.NumberOfRounds" class="form-label fw-semibold">Rounds</label>
+                        <input asp-for="Input.NumberOfRounds" type="number" min="1" max="4" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.MaxParticipants" class="form-label fw-semibold">Max Players</label>
+                        <input asp-for="Input.MaxParticipants" type="number" min="2" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.RegistrationDeadline" class="form-label fw-semibold">Registration Deadline</label>
+                        <input asp-for="Input.RegistrationDeadline" type="date" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check mt-4 pt-2">
+                            <input asp-for="Input.UseHandicaps" class="form-check-input" type="checkbox" />
+                            <label asp-for="Input.UseHandicaps" class="form-check-label">Use Handicaps</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check mt-4 pt-2">
+                            <input asp-for="Input.IsPublic" class="form-check-input" type="checkbox" />
+                            <label asp-for="Input.IsPublic" class="form-check-label">Publicly Visible</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.Rules" class="form-label fw-semibold">Rules</label>
+                        <textarea asp-for="Input.Rules" class="form-control" rows="3" placeholder="Tournament rules..."></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.Prizes" class="form-label fw-semibold">Prizes</label>
+                        <textarea asp-for="Input.Prizes" class="form-control" rows="3" placeholder="Prize descriptions..."></textarea>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-warning px-4">
+                        <i class="bi bi-trophy me-2"></i>Create Tournament
+                    </button>
+                    <a asp-page="/Tournaments/Index" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

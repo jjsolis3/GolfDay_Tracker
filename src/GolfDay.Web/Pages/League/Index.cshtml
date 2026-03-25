@@ -1,0 +1,65 @@
+@page
+@model GolfDay.Web.Pages.League.LeagueIndexModel
+@{
+    ViewData["Title"] = "Leagues";
+}
+
+<div class="container py-4">
+    <h2 class="fw-bold mb-4"><i class="bi bi-people me-2 text-info"></i>Season Leagues</h2>
+
+    @if (!Model.Leagues.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">No active leagues at this time</h5>
+        </div>
+        return;
+    }
+
+    <div class="row g-4">
+        @foreach (var league in Model.Leagues)
+        {
+            var completedMatches = league.Matches.Count(m => m.Status == GolfDay.Domain.Enums.MatchStatus.Completed);
+            var totalMatches = league.Matches.Count;
+            var pct = totalMatches > 0 ? (double)completedMatches / totalMatches * 100 : 0;
+
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge @(league.Status == GolfDay.Domain.Enums.LeagueStatus.Active ? "bg-success" : league.Status == GolfDay.Domain.Enums.LeagueStatus.Registration ? "bg-primary" : "bg-secondary")">
+                                @league.Status
+                            </span>
+                            <span class="badge bg-light text-dark">@league.Format</span>
+                        </div>
+                        <h5 class="fw-bold card-title">@league.Name</h5>
+                        <p class="text-muted small mb-1"><i class="bi bi-building me-1"></i>@league.Club.Name</p>
+                        <p class="text-muted small mb-1">
+                            <i class="bi bi-calendar me-1"></i>@league.StartDate.ToString("MMM d") — @league.EndDate.ToString("MMM d, yyyy")
+                        </p>
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-people me-1"></i>@league.Entries.Count players enrolled
+                        </p>
+                        @if (totalMatches > 0)
+                        {
+                            <div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <small class="text-muted">Match Progress</small>
+                                    <small class="text-muted">@completedMatches / @totalMatches</small>
+                                </div>
+                                <div class="progress" style="height:6px">
+                                    <div class="progress-bar bg-success" style="width:@pct%"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a asp-page="/League/Details" asp-route-id="@league.Id" class="btn btn-sm btn-outline-info w-100">
+                            <i class="bi bi-eye me-1"></i>View League
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

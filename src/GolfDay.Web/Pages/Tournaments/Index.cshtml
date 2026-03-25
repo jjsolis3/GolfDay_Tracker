@@ -1,0 +1,57 @@
+@page
+@model GolfDay.Web.Pages.Tournaments.TournamentsIndexModel
+@{
+    ViewData["Title"] = "Tournaments";
+}
+
+<div class="container py-4">
+    <h2 class="fw-bold mb-4"><i class="bi bi-trophy me-2 text-warning"></i>Tournaments</h2>
+
+    @if (!Model.Tournaments.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-trophy fs-1 text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">No tournaments available</h5>
+        </div>
+        return;
+    }
+
+    <div class="row g-4">
+        @foreach (var t in Model.Tournaments)
+        {
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge @(t.Status == GolfDay.Domain.Enums.TournamentStatus.Active ? "bg-success" : t.Status == GolfDay.Domain.Enums.TournamentStatus.Registration ? "bg-primary" : "bg-secondary")">
+                                @t.Status
+                            </span>
+                            <span class="badge bg-light text-dark">@t.Format</span>
+                        </div>
+                        <h5 class="fw-bold card-title">@t.Name</h5>
+                        <p class="text-muted small mb-1"><i class="bi bi-building me-1"></i>@t.Club.Name</p>
+                        <p class="text-muted small mb-1">
+                            <i class="bi bi-calendar me-1"></i>@t.StartDate.ToString("MMM d") — @t.EndDate.ToString("MMM d, yyyy")
+                        </p>
+                        @if (t.Course != null)
+                        {
+                            <p class="text-muted small mb-1"><i class="bi bi-geo-alt me-1"></i>@t.Course.Name</p>
+                        }
+                        <p class="text-muted small">
+                            <i class="bi bi-people me-1"></i>@t.Entries.Count / @t.MaxParticipants players
+                        </p>
+                        @if (!string.IsNullOrEmpty(t.Description))
+                        {
+                            <p class="small mt-2">@t.Description</p>
+                        }
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a asp-page="/Tournaments/Details" asp-route-id="@t.Id" class="btn btn-sm btn-outline-warning w-100">
+                            <i class="bi bi-eye me-1"></i>View Tournament
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

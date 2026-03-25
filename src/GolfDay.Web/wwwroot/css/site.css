@@ -1,0 +1,235 @@
+/* ================================================
+   GolfDay Tracker - Main Stylesheet
+   ================================================ */
+
+:root {
+    --golf-green: #198754;
+    --golf-green-dark: #146c43;
+    --golf-gold: #ffc107;
+    --fairway: #e8f5e9;
+}
+
+/* ---- General ---- */
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: #f8f9fa;
+}
+
+main {
+    min-height: calc(100vh - 140px);
+}
+
+/* ---- Hero Section ---- */
+.hero-section {
+    background: linear-gradient(135deg, var(--golf-green) 0%, var(--golf-green-dark) 100%);
+}
+
+/* ---- Score Badge Colors ---- */
+.score-eagle { background-color: #dc3545 !important; color: white; }
+.score-birdie { background-color: #fd7e14 !important; color: white; }
+.score-par { background-color: #198754 !important; color: white; }
+.score-bogey { background-color: #6c757d !important; color: white; }
+.score-double { background-color: #495057 !important; color: white; }
+.score-triple { background-color: #212529 !important; color: white; }
+
+/* ---- Scorecard ---- */
+.scorecard-table th,
+.scorecard-table td {
+    text-align: center;
+    vertical-align: middle;
+    min-width: 40px;
+    font-size: 0.875rem;
+}
+
+.scorecard-table th.hole-header {
+    background-color: var(--golf-green);
+    color: white;
+    font-weight: 600;
+}
+
+.scorecard-table td.par-row {
+    background-color: var(--fairway);
+    font-weight: 600;
+    color: var(--golf-green-dark);
+}
+
+.scorecard-table td.score-input-cell {
+    padding: 2px;
+}
+
+.hole-score-input {
+    width: 44px;
+    height: 38px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1rem;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    transition: border-color 0.2s;
+}
+
+.hole-score-input:focus {
+    border-color: var(--golf-green);
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+    outline: none;
+}
+
+.hole-score-input[data-score-to-par="-2"],
+.hole-score-input[data-score-to-par="-3"] { border-color: #dc3545; background-color: #fff5f5; }
+.hole-score-input[data-score-to-par="-1"] { border-color: #fd7e14; background-color: #fff8f0; }
+.hole-score-input[data-score-to-par="0"]  { border-color: #198754; background-color: #f0fff4; }
+.hole-score-input[data-score-to-par="1"]  { border-color: #6c757d; }
+.hole-score-input[data-score-to-par="2"],
+.hole-score-input[data-score-to-par="3"]  { border-color: #dc3545; }
+
+/* ---- Leaderboard ---- */
+.leaderboard-table tr.position-1 { background-color: #fff9e6; }
+.leaderboard-table tr.position-2 { background-color: #f8f9fa; }
+.leaderboard-table tr.position-3 { background-color: #fff4f0; }
+
+.rank-badge {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.rank-1 { background: #ffd700; color: #000; }
+.rank-2 { background: #c0c0c0; color: #000; }
+.rank-3 { background: #cd7f32; color: #fff; }
+
+/* ---- Score to Par display ---- */
+.score-eagle-text  { color: #dc3545; font-weight: 700; }
+.score-birdie-text { color: #fd7e14; font-weight: 600; }
+.score-par-text    { color: #198754; }
+.score-bogey-text  { color: #6c757d; }
+.score-over-text   { color: #dc3545; }
+
+/* ---- Stats Cards ---- */
+.stat-card {
+    border: none;
+    border-radius: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12) !important;
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+/* ---- Profile Avatar ---- */
+.profile-avatar {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+}
+
+/* ---- Live Badge ---- */
+.badge-live {
+    background: #dc3545;
+    animation: pulse-live 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* ---- Cards ---- */
+.card {
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+/* ---- Navigation ---- */
+.navbar-brand {
+    font-size: 1.25rem;
+}
+
+/* ---- Feature Icons ---- */
+.feature-icon {
+    width: 72px;
+    height: 72px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ---- Tables ---- */
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ---- Responsive Scorecard ---- */
+@media (max-width: 768px) {
+    .scorecard-table { font-size: 0.75rem; }
+    .hole-score-input { width: 36px; height: 32px; font-size: 0.875rem; }
+    .hero-section h1 { font-size: 2rem; }
+}
+
+/* ---- Loading spinner ---- */
+.spinner-golf {
+    width: 3rem;
+    height: 3rem;
+    border: 4px solid rgba(25, 135, 84, 0.2);
+    border-top-color: var(--golf-green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ---- Achievement Badges ---- */
+.achievement-card {
+    border: 2px solid transparent;
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.achievement-card.longest-drive { border-color: #ffc107; background: #fffdf0; }
+.achievement-card.closest-pin   { border-color: #0dcaf0; background: #f0fbff; }
+.achievement-card.hole-in-one   { border-color: #dc3545; background: #fff5f5; }
+.achievement-card.low-score     { border-color: #198754; background: #f0fff4; }
+
+/* ---- Hole Circle (Par 3/4/5 indicator) ---- */
+.par-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.par-3 { background: #0dcaf0; color: #000; }
+.par-4 { background: #198754; color: #fff; }
+.par-5 { background: #6f42c1; color: #fff; }
+
+/* ---- Status badges ---- */
+.status-inprogress { background: linear-gradient(135deg, #dc3545, #c82333); }
+.status-scheduled  { background: linear-gradient(135deg, #0d6efd, #0a58ca); }
+.status-completed  { background: linear-gradient(135deg, #6c757d, #495057); }

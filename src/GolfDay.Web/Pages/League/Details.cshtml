@@ -1,0 +1,168 @@
+@page "{id:int}"
+@model GolfDay.Web.Pages.League.LeagueDetailsModel
+@{
+    ViewData["Title"] = Model.League?.Name ?? "League";
+}
+
+@if (Model.League == null)
+{
+    <div class="container py-5 text-center"><h2>League not found</h2></div>
+    return;
+}
+
+<div class="bg-info bg-opacity-10 border-bottom py-4 mb-4">
+    <div class="container">
+        <span class="badge @(Model.League.Status == GolfDay.Domain.Enums.LeagueStatus.Active ? "bg-success" : "bg-secondary") mb-2">@Model.League.Status</span>
+        <h1 class="fw-bold mb-1">@Model.League.Name</h1>
+        <p class="text-muted mb-0">
+            <i class="bi bi-building me-1"></i>@Model.League.Club.Name
+            <span class="mx-2">•</span>
+            <i class="bi bi-calendar me-1"></i>@Model.League.StartDate.ToString("MMM d") – @Model.League.EndDate.ToString("MMM d, yyyy")
+            <span class="mx-2">•</span>
+            <i class="bi bi-people me-1"></i>@Model.League.Format
+        </p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#standings">Standings</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#schedule">Schedule</a></li>
+        @if (User.Identity?.IsAuthenticated == true && Model.UserMatches.Any())
+        {
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#mymatches">My Matches <span class="badge bg-warning text-dark ms-1">@Model.UserMatches.Count</span></a></li>
+        }
+    </ul>
+
+    <div class="tab-content">
+        <!-- Standings -->
+        <div class="tab-pane fade show active" id="standings">
+            @if (!Model.League.Standings.Any())
+            {
+                <div class="text-center py-4 text-muted">No standings yet — matches pending</div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 leaderboard-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Player</th>
+                                    <th class="text-center">P</th>
+                                    <th class="text-center">W</th>
+                                    <th class="text-center">D</th>
+                                    <th class="text-center">L</th>
+                                    <th class="text-center">Pts</th>
+                                    <th class="text-center">Avg</th>
+                                    <th class="text-center">Best</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var standing in Model.League.Standings.OrderBy(s => s.Rank))
+                                {
+                                    <tr class="@(standing.Rank <= 3 ? $"position-{standing.Rank}" : "")">
+                                        <td>
+                                            <span class="rank-badge @(standing.Rank == 1 ? "rank-1" : standing.Rank == 2 ? "rank-2" : standing.Rank == 3 ? "rank-3" : "bg-light text-dark")">@standing.Rank</span>
+                                        </td>
+                                        <td class="fw-semibold">@standing.User.FullName</td>
+                                        <td class="text-center">@standing.Played</td>
+                                        <td class="text-center text-success fw-bold">@standing.Wins</td>
+                                        <td class="text-center text-warning">@standing.Draws</td>
+                                        <td class="text-center text-danger">@standing.Losses</td>
+                                        <td class="text-center fw-bold">@standing.Points</td>
+                                        <td class="text-center small text-muted">@(standing.AverageScore?.ToString("F1") ?? "-")</td>
+                                        <td class="text-center small">@(standing.BestScore?.ToString() ?? "-")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Full Schedule -->
+        <div class="tab-pane fade" id="schedule">
+            @foreach (var roundGroup in Model.League.Matches.OrderBy(m => m.RoundNumber).GroupBy(m => m.RoundNumber))
+            {
+                <h6 class="fw-bold text-muted mt-3 mb-2">Round @roundGroup.Key</h6>
+                @foreach (var match in roundGroup.OrderBy(m => m.ScheduledDeadline))
+                {
+                    <div class="card border-0 shadow-sm mb-2">
+                        <div class="card-body py-2 px-3">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <span class="fw-semibold">@match.Player1.FullName</span>
+                                    @if (match.Player1GrossScore.HasValue)
+                                    {
+                                        <span class="badge bg-success ms-2">@match.Player1GrossScore</span>
+                                    }
+                                    <span class="mx-2 text-muted">vs</span>
+                                    <span class="fw-semibold">@match.Player2.FullName</span>
+                                    @if (match.Player2GrossScore.HasValue)
+                                    {
+                                        <span class="badge bg-success ms-2">@match.Player2GrossScore</span>
+                                    }
+                                </div>
+                                <div class="col-auto text-end">
+                                    @if (match.Status == GolfDay.Domain.Enums.MatchStatus.Completed)
+                                    {
+                                        <span class="badge bg-success">@(match.IsDraw ? "Draw" : (match.WinnerId == match.Player1Id ? match.Player1.FirstName : match.Player2.FirstName) + " wins")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge @(match.Status == GolfDay.Domain.Enums.MatchStatus.Overdue ? "bg-danger" : "bg-light text-dark")">
+                                            By @match.ScheduledDeadline.ToString("MMM d")
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- My Matches -->
+        @if (User.Identity?.IsAuthenticated == true && Model.UserMatches.Any())
+        {
+            <div class="tab-pane fade" id="mymatches">
+                <h5 class="fw-bold mb-3">My Upcoming Matches</h5>
+                @foreach (var match in Model.UserMatches.OrderBy(m => m.ScheduledDeadline))
+                {
+                    var opponent = match.Player1Id == Model.CurrentUserId ? match.Player2 : match.Player1;
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="fw-bold mb-1">vs @opponent.FullName</h6>
+                                    <p class="text-muted small mb-1">
+                                        <i class="bi bi-clock me-1"></i>Deadline: @match.ScheduledDeadline.ToString("MMM d, yyyy")
+                                        @if (match.Status == GolfDay.Domain.Enums.MatchStatus.Overdue)
+                                        {
+                                            <span class="badge bg-danger ms-2">OVERDUE</span>
+                                        }
+                                    </p>
+                                    @if (match.Course != null)
+                                    {
+                                        <p class="text-muted small mb-0"><i class="bi bi-geo-alt me-1"></i>@match.Course.Name</p>
+                                    }
+                                </div>
+                                <div>
+                                    @if (match.Status != GolfDay.Domain.Enums.MatchStatus.Completed)
+                                    {
+                                        <a asp-page="/Events/Index" class="btn btn-sm btn-success">
+                                            <i class="bi bi-plus me-1"></i>Schedule Match
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

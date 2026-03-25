@@ -1,0 +1,499 @@
+@page "{id:int}"
+@model GolfDay.Web.Areas.Admin.Pages.Clubs.ManageModel
+@{
+    ViewData["Title"] = $"Manage Club – {Model.Club?.Name}";
+    var activeTab = Context.Request.Query["tab"].FirstOrDefault() ?? "overview";
+}
+
+<div class="container-fluid py-4">
+    <!-- Breadcrumb / Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Index">Admin</a></li>
+                    <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Clubs/Index">Clubs</a></li>
+                    <li class="breadcrumb-item active">@Model.Club?.Name</li>
+                </ol>
+            </nav>
+            <h1 class="h2 fw-bold mb-0">
+                <i class="bi bi-buildings me-2 text-success"></i>@Model.Club?.Name
+            </h1>
+            <p class="text-muted mb-0 mt-1">
+                @if (!string.IsNullOrEmpty(Model.Club?.City) || !string.IsNullOrEmpty(Model.Club?.State))
+                {
+                    <i class="bi bi-geo-alt me-1"></i>
+                    @string.Join(", ", new[] { Model.Club?.City, Model.Club?.State }.Where(s => !string.IsNullOrEmpty(s)))
+                }
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-area="Admin" asp-page="/Events/Index" asp-route-clubId="@Model.Id"
+               class="btn btn-outline-primary">
+                <i class="bi bi-calendar-event me-1"></i>Events
+            </a>
+            <a asp-area="Admin" asp-page="/Clubs/Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="clubTabs">
+        <li class="nav-item">
+            <a class="nav-link @(activeTab == "overview" ? "active" : "")"
+               href="?tab=overview">
+                <i class="bi bi-info-circle me-1"></i>Overview
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activeTab == "members" ? "active" : "")"
+               href="?tab=members">
+                <i class="bi bi-people me-1"></i>Members
+                <span class="badge bg-secondary rounded-pill ms-1">@Model.Members.Count</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activeTab == "courses" ? "active" : "")"
+               href="?tab=courses">
+                <i class="bi bi-geo-alt me-1"></i>Courses
+                <span class="badge bg-secondary rounded-pill ms-1">@Model.Courses.Count</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activeTab == "settings" ? "active" : "")"
+               href="?tab=settings">
+                <i class="bi bi-gear me-1"></i>Settings
+            </a>
+        </li>
+    </ul>
+
+    <!-- Overview Tab -->
+    @if (activeTab == "overview")
+    {
+        <div class="row g-4">
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-semibold"><i class="bi bi-card-text me-2 text-success"></i>Club Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4 text-muted">Name</dt>
+                            <dd class="col-sm-8 fw-semibold">@Model.Club?.Name</dd>
+
+                            <dt class="col-sm-4 text-muted">Slug</dt>
+                            <dd class="col-sm-8 font-monospace text-muted">/@Model.Club?.Slug</dd>
+
+                            @if (!string.IsNullOrEmpty(Model.Club?.Description))
+                            {
+                                <dt class="col-sm-4 text-muted">Description</dt>
+                                <dd class="col-sm-8">@Model.Club.Description</dd>
+                            }
+
+                            <dt class="col-sm-4 text-muted">Address</dt>
+                            <dd class="col-sm-8">
+                                @(string.Join(", ", new[] { Model.Club?.Address, Model.Club?.City, Model.Club?.State, Model.Club?.ZipCode }.Where(s => !string.IsNullOrEmpty(s))))
+                            </dd>
+
+                            <dt class="col-sm-4 text-muted">Contact Email</dt>
+                            <dd class="col-sm-8">
+                                @if (!string.IsNullOrEmpty(Model.Club?.ContactEmail))
+                                {
+                                    <a href="mailto:@Model.Club.ContactEmail">@Model.Club.ContactEmail</a>
+                                }
+                                else { <span class="text-muted fst-italic">Not set</span> }
+                            </dd>
+
+                            <dt class="col-sm-4 text-muted">Contact Phone</dt>
+                            <dd class="col-sm-8">@(Model.Club?.ContactPhone ?? "—")</dd>
+
+                            <dt class="col-sm-4 text-muted">Website</dt>
+                            <dd class="col-sm-8">
+                                @if (!string.IsNullOrEmpty(Model.Club?.Website))
+                                {
+                                    <a href="@Model.Club.Website" target="_blank" rel="noopener">@Model.Club.Website</a>
+                                }
+                                else { <span class="text-muted fst-italic">Not set</span> }
+                            </dd>
+
+                            <dt class="col-sm-4 text-muted">Founded</dt>
+                            <dd class="col-sm-8">@(Model.Club?.FoundedDate?.ToString("MMMM d, yyyy") ?? "—")</dd>
+
+                            <dt class="col-sm-4 text-muted">Visibility</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.Club?.IsPublic == true)
+                                {
+                                    <span class="badge bg-success">Public</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Private</span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-4 text-muted">Status</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.Club?.IsActive == true)
+                                {
+                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary"><i class="bi bi-pause-circle me-1"></i>Inactive</span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-semibold"><i class="bi bi-bar-chart me-2 text-primary"></i>Quick Stats</h5>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-people me-2 text-info"></i>Total Members</span>
+                            <span class="badge bg-info rounded-pill fs-6">@Model.Members.Count</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-geo-alt me-2 text-success"></i>Courses</span>
+                            <span class="badge bg-success rounded-pill fs-6">@Model.Courses.Count</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-calendar-event me-2 text-primary"></i>Total Events</span>
+                            <span class="badge bg-primary rounded-pill fs-6">@Model.TotalEventCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-trophy me-2 text-warning"></i>Tournaments</span>
+                            <span class="badge bg-warning text-dark rounded-pill fs-6">@Model.TournamentCount</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-diagram-3 me-2 text-secondary"></i>League Seasons</span>
+                            <span class="badge bg-secondary rounded-pill fs-6">@Model.LeagueSeasonCount</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Members Tab -->
+    @if (activeTab == "members")
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-semibold">
+                    <i class="bi bi-people me-2 text-info"></i>Club Members
+                    <span class="badge bg-info rounded-pill ms-2">@Model.Members.Count</span>
+                </h5>
+                <button type="button" class="btn btn-success btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                    <i class="bi bi-person-plus me-1"></i>Add Member
+                </button>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Members.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Member</th>
+                                    <th>Email</th>
+                                    <th>Member #</th>
+                                    <th>Role</th>
+                                    <th>Joined</th>
+                                    <th>Handicap</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in Model.Members)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center"
+                                                     style="width:36px;height:36px;min-width:36px;">
+                                                    <i class="bi bi-person text-success"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold">@m.User.FullName</div>
+                                                    <div class="text-muted small">@m.User.UserName</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-muted small">@m.User.Email</td>
+                                        <td class="text-muted small font-monospace">
+                                            @(m.MemberNumber ?? "—")
+                                        </td>
+                                        <td>
+                                            @{
+                                                var roleClass = m.Role switch
+                                                {
+                                                    ClubRole.Admin    => "bg-danger",
+                                                    ClubRole.Manager  => "bg-warning text-dark",
+                                                    ClubRole.Staff    => "bg-info",
+                                                    _                 => "bg-secondary"
+                                                };
+                                            }
+                                            <span class="badge @roleClass rounded-pill">@m.Role</span>
+                                        </td>
+                                        <td class="text-muted small">@m.JoinedAt.ToString("MMM d, yyyy")</td>
+                                        <td class="text-center">
+                                            @(m.User.HandicapIndex.HasValue
+                                                ? m.User.HandicapIndex.Value.ToString("F1")
+                                                : "—")
+                                        </td>
+                                        <td>
+                                            @if (m.IsActive)
+                                            {
+                                                <span class="badge bg-success rounded-pill">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary rounded-pill">Inactive</span>
+                                            }
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <div class="btn-group btn-group-sm">
+                                                <form method="post" asp-page-handler="UpdateRole" class="d-inline">
+                                                    <input type="hidden" name="membershipId" value="@m.Id" />
+                                                    <select name="newRole" class="form-select form-select-sm d-inline w-auto"
+                                                            onchange="this.form.submit()" style="max-width:110px;">
+                                                        @foreach (var role in Enum.GetValues<ClubRole>())
+                                                        {
+                                                            <option value="@((int)role)" selected="@(m.Role == role)">
+                                                                @role
+                                                            </option>
+                                                        }
+                                                    </select>
+                                                </form>
+                                                <form method="post" asp-page-handler="RemoveMember"
+                                                      class="d-inline ms-1"
+                                                      onsubmit="return confirm('Remove this member from the club?');">
+                                                    <input type="hidden" name="membershipId" value="@m.Id" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove">
+                                                        <i class="bi bi-person-x"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-people fs-1 opacity-25 d-block mb-2"></i>
+                        No members found for this club.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Add Member Modal -->
+        <div class="modal fade" id="addMemberModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="post" asp-page-handler="AddMember" class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Add Member</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">User Email</label>
+                            <input type="email" name="userEmail" class="form-control"
+                                   placeholder="user@example.com" required />
+                            <div class="form-text">Enter the email address of the registered user.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Role</label>
+                            <select name="role" class="form-select">
+                                @foreach (var role in Enum.GetValues<ClubRole>())
+                                {
+                                    <option value="@((int)role)">@role</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Member Number <span class="text-muted fw-normal">(optional)</span></label>
+                            <input type="text" name="memberNumber" class="form-control"
+                                   placeholder="e.g. M-0042" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-person-plus me-1"></i>Add Member
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <!-- Courses Tab -->
+    @if (activeTab == "courses")
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-semibold">
+                    <i class="bi bi-geo-alt me-2 text-success"></i>Courses
+                    <span class="badge bg-success rounded-pill ms-2">@Model.Courses.Count</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Courses.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Course Name</th>
+                                    <th>Location</th>
+                                    <th class="text-center">Holes</th>
+                                    <th class="text-center">Par</th>
+                                    <th class="text-center">Rating</th>
+                                    <th class="text-center">Slope</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var course in Model.Courses)
+                                {
+                                    <tr>
+                                        <td class="ps-4 fw-semibold">
+                                            @course.Name
+                                            @if (course.IsHomeClubCourse)
+                                            {
+                                                <span class="badge bg-success ms-2 rounded-pill">Home</span>
+                                            }
+                                        </td>
+                                        <td class="text-muted small">
+                                            @string.Join(", ", new[] { course.City, course.State }.Where(s => !string.IsNullOrEmpty(s)))
+                                        </td>
+                                        <td class="text-center">@course.NumberOfHoles</td>
+                                        <td class="text-center">@course.ParTotal</td>
+                                        <td class="text-center">
+                                            @(course.CourseRating.HasValue ? course.CourseRating.Value.ToString("F1") : "—")
+                                        </td>
+                                        <td class="text-center">
+                                            @(course.SlopeRating.HasValue ? course.SlopeRating.Value.ToString("F0") : "—")
+                                        </td>
+                                        <td class="text-center">
+                                            @if (course.IsActive)
+                                            {
+                                                <span class="badge bg-success rounded-pill">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary rounded-pill">Inactive</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-geo-alt fs-1 opacity-25 d-block mb-2"></i>
+                        No courses assigned to this club.
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Settings Tab -->
+    @if (activeTab == "settings")
+    {
+        <div class="row g-4">
+            <div class="col-md-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-semibold"><i class="bi bi-gear me-2 text-secondary"></i>Club Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" asp-page-handler="UpdateSettings">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Club Name</label>
+                                <input type="text" name="clubName" class="form-control"
+                                       value="@Model.Club?.Name" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Description</label>
+                                <textarea name="description" class="form-control" rows="3">@Model.Club?.Description</textarea>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label fw-semibold">Contact Email</label>
+                                    <input type="email" name="contactEmail" class="form-control"
+                                           value="@Model.Club?.ContactEmail" />
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label fw-semibold">Contact Phone</label>
+                                    <input type="tel" name="contactPhone" class="form-control"
+                                           value="@Model.Club?.ContactPhone" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Website</label>
+                                <input type="url" name="website" class="form-control"
+                                       value="@Model.Club?.Website" />
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label fw-semibold">City</label>
+                                    <input type="text" name="city" class="form-control"
+                                           value="@Model.Club?.City" />
+                                </div>
+                                <div class="col-sm-3">
+                                    <label class="form-label fw-semibold">State</label>
+                                    <input type="text" name="state" class="form-control"
+                                           value="@Model.Club?.State" maxlength="2" />
+                                </div>
+                                <div class="col-sm-3">
+                                    <label class="form-label fw-semibold">ZIP</label>
+                                    <input type="text" name="zipCode" class="form-control"
+                                           value="@Model.Club?.ZipCode" />
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-4">
+                                <div class="col-sm-6">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="isActive"
+                                               name="isActive" value="true"
+                                               checked="@(Model.Club?.IsActive == true)" />
+                                        <label class="form-check-label fw-semibold" for="isActive">Active</label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="isPublic"
+                                               name="isPublic" value="true"
+                                               checked="@(Model.Club?.IsPublic == true)" />
+                                        <label class="form-check-label fw-semibold" for="isPublic">Publicly Visible</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-save me-1"></i>Save Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
