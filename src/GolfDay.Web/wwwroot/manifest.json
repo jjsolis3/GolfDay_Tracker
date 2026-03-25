@@ -1,0 +1,41 @@
+{
+  "name": "GolfDay Tracker",
+  "short_name": "GolfDay",
+  "description": "Golf club management, scoring, and handicap tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#198754",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Score a Round",
+      "short_name": "Score",
+      "description": "Enter scores for an active event",
+      "url": "/Events/Index",
+      "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Book Tee Time",
+      "short_name": "Tee Time",
+      "description": "Reserve a tee time at your club",
+      "url": "/TeeTime/Index",
+      "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["sports", "health", "productivity"]
+}

@@ -4,6 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - GolfDay Tracker</title>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#198754" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GolfDay" />
+    <link rel="apple-touch-icon" href="/images/icon-192.png" />
     <!-- Bootstrap 5 via CDN (replace with local files in production) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
@@ -43,6 +50,14 @@
                                 <i class="bi bi-bar-chart me-1"></i>Standings
                             </a>
                         </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/TeeTime/Index">
+                                    <i class="bi bi-clock me-1"></i>Tee Times
+                                </a>
+                            </li>
+                        }
                     </ul>
                     <ul class="navbar-nav ms-auto align-items-center">
                         @if (User.Identity?.IsAuthenticated == true)
@@ -55,6 +70,13 @@
                                     </a>
                                 </li>
                             }
+                            <li class="nav-item me-1">
+                                <a class="nav-link position-relative" asp-page="/Notifications/Index" title="Notifications">
+                                    <i class="bi bi-bell-fill fs-5"></i>
+                                    <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                                          style="font-size:.65rem;">0</span>
+                                </a>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown" aria-expanded="false">
                                     <span class="profile-avatar bg-white text-success rounded-circle d-inline-flex align-items-center justify-content-center me-2"
@@ -67,6 +89,9 @@
                                     <li><a class="dropdown-item" asp-page="/Account/Profile"><i class="bi bi-person me-2"></i>My Profile</a></li>
                                     <li><a class="dropdown-item" asp-page="/Player/Stats"><i class="bi bi-graph-up me-2"></i>My Stats</a></li>
                                     <li><a class="dropdown-item" asp-page="/Player/Rounds"><i class="bi bi-list-ol me-2"></i>My Rounds</a></li>
+                                    <li><a class="dropdown-item" asp-page="/TeeTime/Index"><i class="bi bi-clock me-2"></i>Tee Times</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Club/Join"><i class="bi bi-people me-2"></i>Join a Club</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Notifications/Index"><i class="bi bi-bell me-2"></i>Notifications</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form method="post" asp-page="/Account/Logout">
@@ -89,6 +114,12 @@
                                 <a class="btn btn-warning btn-sm px-3" asp-page="/Account/Register">Join Free</a>
                             </li>
                         }
+                        <!-- Dark Mode Toggle -->
+                        <li class="nav-item ms-2">
+                            <button id="dark-mode-toggle" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">
+                                <i class="bi bi-moon-fill"></i>
+                            </button>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -116,6 +147,42 @@
     <!-- Live notification toast container -->
     <div id="live-notifications" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999"></div>
 
+    <!-- Quick Actions FAB (authenticated users only) -->
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <div id="fab-container" class="print-hide">
+            <button id="fab-main" aria-label="Quick Actions" aria-expanded="false">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            <div id="fab-actions" class="fab-actions" role="menu">
+                <div class="fab-action-item">
+                    <label>Post Score</label>
+                    <a asp-page="/Events/Index" class="fab-action-btn bg-success" title="Post Score">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                </div>
+                <div class="fab-action-item">
+                    <label>Join Event</label>
+                    <a asp-page="/Events/Index" class="fab-action-btn bg-primary" title="Join Event">
+                        <i class="bi bi-calendar-plus"></i>
+                    </a>
+                </div>
+                <div class="fab-action-item">
+                    <label>Book Tee Time</label>
+                    <a asp-page="/TeeTime/Index" class="fab-action-btn bg-warning" title="Book Tee Time" style="color:#212529;">
+                        <i class="bi bi-clock"></i>
+                    </a>
+                </div>
+                <div class="fab-action-item">
+                    <label>Report Conditions</label>
+                    <a asp-page="/Club/Dashboard" class="fab-action-btn bg-info" title="Report Conditions" style="color:#212529;">
+                        <i class="bi bi-cloud-sun"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+
     <footer class="footer py-4 bg-dark text-white mt-5">
         <div class="container">
             <div class="row align-items-center">
@@ -140,5 +207,27 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const btn = document.getElementById('pwa-install-btn');
+            if (btn) btn.classList.remove('d-none');
+        });
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+            }
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,328 @@
+@page
+@model GolfDay.Web.Areas.Admin.Pages.TeeTime.ManageModel
+@using GolfDay.Domain.Enums
+@{
+    ViewData["Title"] = $"Tee Sheet — {Model.Club?.Name}";
+    var prevDate = Model.SelectedDate.AddDays(-1);
+    var nextDate = Model.SelectedDate.AddDays(1);
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var isToday = Model.SelectedDate == today;
+}
+
+<div class="container-fluid py-4">
+
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@success
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] is string error)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@error
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Clubs/Manage" asp-route-id="@Model.Id">@Model.Club?.Name</a></li>
+                    <li class="breadcrumb-item active">Tee Sheet</li>
+                </ol>
+            </nav>
+            <h1 class="h2 fw-bold mb-0">
+                <i class="bi bi-calendar3-week me-2 text-success"></i>Tee Sheet
+            </h1>
+        </div>
+        <a asp-area="Admin" asp-page="/Clubs/Manage" asp-route-id="@Model.Id"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Club
+        </a>
+    </div>
+
+    <!-- Date Navigation -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2 d-flex align-items-center gap-3 flex-wrap">
+            <a asp-page asp-route-id="@Model.Id"
+               asp-route-date="@prevDate.ToString("yyyy-MM-dd")"
+               class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-chevron-left me-1"></i>Previous
+            </a>
+            <h5 class="mb-0 fw-bold flex-grow-1 text-center">
+                @(isToday ? "Today — " : "")@Model.SelectedDate.ToString("dddd, MMMM d, yyyy")
+            </h5>
+            <a asp-page asp-route-id="@Model.Id"
+               asp-route-date="@nextDate.ToString("yyyy-MM-dd")"
+               class="btn btn-outline-secondary btn-sm">
+                Next<i class="bi bi-chevron-right ms-1"></i>
+            </a>
+            <form method="get" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="date" name="date" class="form-control form-control-sm"
+                       value="@Model.SelectedDate.ToString("yyyy-MM-dd")"
+                       onchange="this.form.submit()" style="width:160px;" />
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- LEFT: Forms -->
+        <div class="col-xl-3 col-lg-4">
+
+            <!-- Bulk Generate -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-success text-white fw-semibold">
+                    <i class="bi bi-magic me-2"></i>Generate Slots
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="BulkGenerate">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold mb-1">Course</label>
+                            <select name="courseId" class="form-select form-select-sm" required>
+                                @if (!Model.Courses.Any())
+                                {
+                                    <option value="">No courses configured</option>
+                                }
+                                @foreach (var c in Model.Courses)
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold mb-1">Start Date</label>
+                                <input type="date" name="startDate" class="form-control form-control-sm"
+                                       value="@Model.SelectedDate.ToString("yyyy-MM-dd")" required />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold mb-1">End Date</label>
+                                <input type="date" name="endDate" class="form-control form-control-sm"
+                                       value="@Model.SelectedDate.AddDays(6).ToString("yyyy-MM-dd")" required />
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold mb-1">First Time</label>
+                                <input type="time" name="firstTeeTime" class="form-control form-control-sm"
+                                       value="07:00" required />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold mb-1">Interval</label>
+                                <select name="intervalMinutes" class="form-select form-select-sm">
+                                    <option value="8">8 min</option>
+                                    <option value="10" selected>10 min</option>
+                                    <option value="12">12 min</option>
+                                    <option value="15">15 min</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold mb-1">Slots/Day</label>
+                                <input type="number" name="slotsPerDay" class="form-control form-control-sm"
+                                       value="12" min="1" max="40" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold mb-1">Max Players</label>
+                                <select name="maxPlayers" class="form-select form-select-sm">
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4" selected>4</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100"
+                                @(!Model.Courses.Any() ? "disabled" : "")>
+                            <i class="bi bi-magic me-2"></i>Generate
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Add Single Slot -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-3"><i class="bi bi-plus-circle me-2 text-success"></i>Add Single Slot</h6>
+                    <form method="post" asp-page-handler="AddSlot">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold mb-1">Course</label>
+                            <select name="courseId" class="form-select form-select-sm" required>
+                                @foreach (var c in Model.Courses)
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold mb-1">Start Time</label>
+                            <input type="time" name="startTime" class="form-control form-control-sm" required />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold mb-1">Max Players</label>
+                            <select name="maxPlayers" class="form-select form-select-sm">
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4" selected>4</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold mb-1">Notes (optional)</label>
+                            <input type="text" name="notes" class="form-control form-control-sm"
+                                   placeholder="e.g. Ladies only" maxlength="100" />
+                        </div>
+                        <button type="submit" class="btn btn-outline-success w-100"
+                                @(!Model.Courses.Any() ? "disabled" : "")>
+                            <i class="bi bi-plus-lg me-1"></i>Add Slot
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Tee Sheet Table -->
+        <div class="col-xl-9 col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">
+                        <i class="bi bi-table me-2 text-success"></i>
+                        @Model.Slots.Count slot(s) for @Model.SelectedDate.ToString("MMM d, yyyy")
+                    </span>
+                    @{
+                        var blockedCount = Model.Slots.Count(s => s.IsBlocked);
+                    }
+                    @if (blockedCount > 0)
+                    {
+                        <span class="badge bg-warning text-dark">@blockedCount blocked</span>
+                    }
+                </div>
+
+                @if (!Model.Slots.Any())
+                {
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-calendar-x display-3 text-muted opacity-50"></i>
+                        <h5 class="mt-3 text-muted">No slots for this date</h5>
+                        <p class="text-muted">Use Generate Slots to create tee times.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle" style="font-size:.875rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:90px;">Time</th>
+                                    <th>Course</th>
+                                    <th style="width:100px;">Capacity</th>
+                                    <th>Players Booked</th>
+                                    <th style="width:80px;">Status</th>
+                                    <th style="width:110px;" class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var slot in Model.Slots)
+                                {
+                                    var confirmedBookings = slot.Bookings
+                                        .Where(b => b.Status == TeeTimeBookingStatus.Confirmed).ToList();
+                                    var bookedCount = confirmedBookings.Sum(b => b.NumberOfPlayers);
+                                    var isFull = bookedCount >= slot.MaxPlayers;
+
+                                    <tr class="@(slot.IsBlocked ? "table-secondary opacity-50" : "")">
+                                        <td>
+                                            <span class="fw-bold text-success fs-6">
+                                                @slot.StartTime.ToString("h\\:mm tt")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-semibold">@(slot.Course?.Name ?? "—")</span>
+                                            @if (!string.IsNullOrEmpty(slot.Notes))
+                                            {
+                                                <br /><small class="text-muted fst-italic">@slot.Notes</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="fw-semibold @(isFull ? "text-danger" : "text-success")">
+                                                @bookedCount/@slot.MaxPlayers
+                                            </span>
+                                            <div class="progress mt-1" style="height:4px;width:60px;">
+                                                <div class="progress-bar @(isFull ? "bg-danger" : "bg-success")"
+                                                     style="width:@(slot.MaxPlayers > 0 ? bookedCount * 100 / slot.MaxPlayers : 0)%"></div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (!confirmedBookings.Any())
+                                            {
+                                                <span class="text-muted small fst-italic">None yet</span>
+                                            }
+                                            else
+                                            {
+                                                @foreach (var bk in confirmedBookings)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success me-1">
+                                                        <i class="bi bi-person me-1"></i>@bk.User?.FullName
+                                                        @if (bk.NumberOfPlayers > 1)
+                                                        {<span class="ms-1">(×@bk.NumberOfPlayers)</span>}
+                                                    </span>
+                                                }
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (slot.IsBlocked)
+                                            {
+                                                <span class="badge bg-danger">Blocked</span>
+                                            }
+                                            else if (isFull)
+                                            {
+                                                <span class="badge bg-warning text-dark">Full</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">Open</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-flex gap-1 justify-content-end">
+                                                <form method="post" asp-page-handler="ToggleBlock">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="slotId" value="@slot.Id" />
+                                                    <input type="hidden" name="id" value="@Model.Id" />
+                                                    <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                    <button type="submit"
+                                                            class="btn btn-sm @(slot.IsBlocked ? "btn-success" : "btn-outline-warning")"
+                                                            title="@(slot.IsBlocked ? "Unblock" : "Block")">
+                                                        <i class="bi @(slot.IsBlocked ? "bi-unlock" : "bi-lock")"></i>
+                                                    </button>
+                                                </form>
+                                                <form method="post" asp-page-handler="DeleteSlot"
+                                                      onsubmit="return confirm('Delete this slot and all its bookings?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="slotId" value="@slot.Id" />
+                                                    <input type="hidden" name="id" value="@Model.Id" />
+                                                    <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

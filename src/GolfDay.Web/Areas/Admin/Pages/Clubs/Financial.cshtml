@@ -1,0 +1,417 @@
+@page "{id:int}"
+@model GolfDay.Web.Areas.Admin.Pages.Clubs.FinancialModel
+@{
+    ViewData["Title"] = $"Financial – {Model.Club?.Name}";
+    var activeTab = Request.Query["tab"].FirstOrDefault() ?? "current";
+}
+
+@section Styles {
+    <style>
+        .stat-card-fin { border-radius: 12px; border: none; }
+        .stat-card-fin .stat-icon {
+            width: 52px; height: 52px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; flex-shrink: 0;
+        }
+    </style>
+}
+
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Index">Admin</a></li>
+                    <li class="breadcrumb-item"><a asp-area="Admin" asp-page="/Clubs/Index">Clubs</a></li>
+                    <li class="breadcrumb-item">
+                        <a asp-area="Admin" asp-page="/Clubs/Manage" asp-route-id="@Model.Id">@Model.Club?.Name</a>
+                    </li>
+                    <li class="breadcrumb-item active">Financial</li>
+                </ol>
+            </nav>
+            <h1 class="h2 fw-bold mb-0">
+                <i class="bi bi-cash-coin me-2 text-success"></i>Dues &amp; Financials
+            </h1>
+            <p class="text-muted mb-0 mt-1">Track member dues and payment history for @Model.Club?.Name</p>
+        </div>
+        <a asp-area="Admin" asp-page="/Clubs/Manage" asp-route-id="@Model.Id"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Manage
+        </a>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@success
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Summary Stats -->
+    <div class="row g-3 mb-4">
+        <!-- Total Collected -->
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm stat-card-fin h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-bag-check-fill"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Total Collected</div>
+                        <div class="fw-bold fs-4 text-success">$@Model.TotalCollected.ToString("N2")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Outstanding -->
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm stat-card-fin h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Outstanding</div>
+                        <div class="fw-bold fs-4 text-danger">$@Model.TotalOutstanding.ToString("N2")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Paid Members -->
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm stat-card-fin h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-person-check-fill"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Paid / Current</div>
+                        <div class="fw-bold fs-4 text-success">@Model.PaidCount</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Overdue -->
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm stat-card-fin h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-clock-fill"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Overdue / Unpaid</div>
+                        <div class="fw-bold fs-4 text-warning">@(Model.OverdueCount + Model.NeverPaidCount)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-0" id="financialTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(activeTab == "current" ? "active" : "")" href="?tab=current">
+                <i class="bi bi-check-circle me-1 text-success"></i>Current
+                <span class="badge bg-success rounded-pill ms-1">@Model.PaidCount</span>
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(activeTab == "overdue" ? "active" : "")" href="?tab=overdue">
+                <i class="bi bi-clock me-1 text-warning"></i>Overdue
+                @if (Model.OverdueCount > 0)
+                {
+                    <span class="badge bg-warning text-dark rounded-pill ms-1">@Model.OverdueCount</span>
+                }
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(activeTab == "neverpaid" ? "active" : "")" href="?tab=neverpaid">
+                <i class="bi bi-x-circle me-1 text-danger"></i>Never Paid
+                @if (Model.NeverPaidCount > 0)
+                {
+                    <span class="badge bg-danger rounded-pill ms-1">@Model.NeverPaidCount</span>
+                }
+            </a>
+        </li>
+    </ul>
+
+    <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
+        <div class="card-body p-0">
+
+            <!-- Current Tab -->
+            @if (activeTab == "current")
+            {
+                @if (!Model.CurrentMembers.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-person-check fs-1 opacity-25 d-block mb-2"></i>
+                        No members with current dues paid.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Member</th>
+                                    <th>Email</th>
+                                    <th class="text-end">Annual Dues</th>
+                                    <th class="text-end">Total Paid</th>
+                                    <th>Last Payment</th>
+                                    <th>Paid Through</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in Model.CurrentMembers)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center"
+                                                     style="width:34px;height:34px;min-width:34px;">
+                                                    <i class="bi bi-person text-success small"></i>
+                                                </div>
+                                                <span class="fw-semibold">@m.User.FullName</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-muted small">@m.User.Email</td>
+                                        <td class="text-end">
+                                            @(m.AnnualDueAmount.HasValue ? $"${m.AnnualDueAmount:N2}" : "—")
+                                        </td>
+                                        <td class="text-end fw-semibold text-success">$@m.TotalPaid.ToString("N2")</td>
+                                        <td class="text-muted small">
+                                            @(m.LastPaymentDate.HasValue ? m.LastPaymentDate.Value.ToString("MMM d, yyyy") : "—")
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success rounded-pill">
+                                                @m.DuesPaidThrough!.Value.ToString("MMM d, yyyy")
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+
+            <!-- Overdue Tab -->
+            @if (activeTab == "overdue")
+            {
+                @if (!Model.OverdueMembers.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-clock fs-1 opacity-25 d-block mb-2"></i>
+                        No overdue members.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Member</th>
+                                    <th>Email</th>
+                                    <th class="text-end">Annual Dues</th>
+                                    <th class="text-end">Total Paid</th>
+                                    <th>Last Payment</th>
+                                    <th>Expired</th>
+                                    <th class="text-end pe-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in Model.OverdueMembers)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center"
+                                                     style="width:34px;height:34px;min-width:34px;">
+                                                    <i class="bi bi-person text-warning small"></i>
+                                                </div>
+                                                <span class="fw-semibold">@m.User.FullName</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-muted small">@m.User.Email</td>
+                                        <td class="text-end">
+                                            @(m.AnnualDueAmount.HasValue ? $"${m.AnnualDueAmount:N2}" : "—")
+                                        </td>
+                                        <td class="text-end">$@m.TotalPaid.ToString("N2")</td>
+                                        <td class="text-muted small">
+                                            @(m.LastPaymentDate.HasValue ? m.LastPaymentDate.Value.ToString("MMM d, yyyy") : "—")
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-warning text-dark rounded-pill">
+                                                @m.DuesPaidThrough!.Value.ToString("MMM d, yyyy")
+                                            </span>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <button type="button" class="btn btn-sm btn-outline-success"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#paymentModal-@m.Id">
+                                                <i class="bi bi-cash me-1"></i>Record Payment
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+
+            <!-- Never Paid Tab -->
+            @if (activeTab == "neverpaid")
+            {
+                @if (!Model.NeverPaidMembers.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-x-circle fs-1 opacity-25 d-block mb-2"></i>
+                        All members with dues have made at least one payment.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Member</th>
+                                    <th>Email</th>
+                                    <th class="text-end">Annual Dues</th>
+                                    <th>Joined</th>
+                                    <th class="text-end pe-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in Model.NeverPaidMembers)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center"
+                                                     style="width:34px;height:34px;min-width:34px;">
+                                                    <i class="bi bi-person text-danger small"></i>
+                                                </div>
+                                                <span class="fw-semibold">@m.User.FullName</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-muted small">@m.User.Email</td>
+                                        <td class="text-end fw-semibold text-danger">
+                                            $@m.AnnualDueAmount!.Value.ToString("N2")
+                                        </td>
+                                        <td class="text-muted small">@m.JoinedAt.ToString("MMM d, yyyy")</td>
+                                        <td class="text-end pe-4">
+                                            <button type="button" class="btn btn-sm btn-outline-success"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#paymentModal-@m.Id">
+                                                <i class="bi bi-cash me-1"></i>Record Payment
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+
+        </div>
+    </div>
+</div>
+
+<!-- Record Payment Modals (Overdue) -->
+@foreach (var m in Model.OverdueMembers)
+{
+    <div class="modal fade" id="paymentModal-@m.Id" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <form method="post" asp-page-handler="RecordPayment" class="modal-content">
+                <input type="hidden" name="membershipId" value="@m.Id" />
+                <div class="modal-header">
+                    <h6 class="modal-title fw-semibold">
+                        <i class="bi bi-cash me-2 text-success"></i>Record Payment
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        Recording payment for <strong>@m.User.FullName</strong>.<br />
+                        Annual dues: <strong>@(m.AnnualDueAmount.HasValue ? $"${m.AnnualDueAmount:N2}" : "—")</strong>
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="amount" step="0.01" min="0.01"
+                                   class="form-control"
+                                   value="@(m.AnnualDueAmount?.ToString("F2") ?? "")"
+                                   required />
+                        </div>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
+                        <input type="text" name="notes" class="form-control"
+                               placeholder="e.g. Check #1234" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-check me-1"></i>Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<!-- Record Payment Modals (Never Paid) -->
+@foreach (var m in Model.NeverPaidMembers)
+{
+    <div class="modal fade" id="paymentModal-@m.Id" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <form method="post" asp-page-handler="RecordPayment" class="modal-content">
+                <input type="hidden" name="membershipId" value="@m.Id" />
+                <div class="modal-header">
+                    <h6 class="modal-title fw-semibold">
+                        <i class="bi bi-cash me-2 text-success"></i>Record Payment
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        Recording payment for <strong>@m.User.FullName</strong>.<br />
+                        Annual dues: <strong>$@m.AnnualDueAmount!.Value.ToString("N2")</strong>
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="amount" step="0.01" min="0.01"
+                                   class="form-control"
+                                   value="@m.AnnualDueAmount!.Value.ToString("F2")"
+                                   required />
+                        </div>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
+                        <input type="text" name="notes" class="form-control"
+                               placeholder="e.g. Check #1234" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-check me-1"></i>Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}

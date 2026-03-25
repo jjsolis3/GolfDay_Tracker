@@ -1,0 +1,465 @@
+@page "{roundId:int}"
+@model GolfDay.Web.Pages.Scoring.AttestModel
+@{
+    ViewData["Title"] = Model.Round != null
+        ? $"Attest — {Model.Round.User?.FullName}'s Scorecard"
+        : "Attest Scorecard";
+
+    var front9  = Model.HoleScores.Where(h => h.HoleNumber <= 9).ToList();
+    var back9   = Model.HoleScores.Where(h => h.HoleNumber > 9).ToList();
+    var front9Par    = front9.Sum(h => h.Par);
+    var back9Par     = back9.Sum(h => h.Par);
+    var front9Score  = front9.Sum(h => h.Strokes);
+    var back9Score   = back9.Sum(h => h.Strokes);
+    var totalPar     = front9Par + back9Par;
+    var totalScore   = front9Score + back9Score;
+
+    static string ScoreColor(int strokes, int par)
+    {
+        var diff = strokes - par;
+        return diff switch
+        {
+            <= -2 => "table-danger fw-bold",      // Eagle or better — red background
+            -1    => "table-warning",              // Birdie — orange/warm
+            0     => "table-success",              // Par — green
+            1     => "",                            // Bogey — neutral
+            _     => "table-secondary"             // Double+ — dark
+        };
+    }
+
+    static string DiffLabel(int diff) => diff switch
+    {
+        0  => "E",
+        > 0 => $"+{diff}",
+        _  => diff.ToString()
+    };
+}
+
+@section Styles {
+    <style>
+        .scorecard-table th { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; }
+        .scorecard-table td { vertical-align: middle; }
+        .scorecard-totals td { font-weight: 700; border-top: 2px solid #dee2e6; }
+        .attest-hero {
+            background: linear-gradient(135deg, #166534 0%, #15803d 60%, #22c55e 100%);
+            color: white;
+        }
+        .print-scorecard-header { display: none; }
+    </style>
+}
+
+<div class="container py-4" style="max-width:860px;">
+
+    <!-- Print-only header -->
+    <div class="print-scorecard-header">
+        <h2 class="fw-bold">GolfDay Tracker — Official Scorecard</h2>
+        @if (Model.Round != null)
+        {
+            <p>Player: @(Model.Round.User?.FullName ?? "—") &nbsp;|&nbsp;
+               Course: @(Model.Round.Course?.Name ?? "—") &nbsp;|&nbsp;
+               Date: @Model.Round.CreatedAt.ToString("MMMM d, yyyy")
+               @if (Model.Round.IsAttested) { <text>&nbsp;|&nbsp; ✓ Attested</text> }
+            </p>
+        }
+    </div>
+
+    @if (Model.Round == null)
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
+            <h3 class="mt-3">Round Not Found</h3>
+            <a asp-page="/Events/Index" class="btn btn-success mt-3">Browse Events</a>
+        </div>
+        return;
+    }
+
+    var round = Model.Round;
+
+    <!-- Header -->
+    <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+        <div class="attest-hero p-4">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:56px;height:56px;">
+                    @if (round.User?.ProfilePictureUrl != null)
+                    {
+                        <img src="@round.User.ProfilePictureUrl"
+                             class="rounded-circle" style="width:56px;height:56px;object-fit:cover;"
+                             alt="@round.User.FullName" />
+                    }
+                    else
+                    {
+                        <i class="bi bi-person-fill fs-3 text-white"></i>
+                    }
+                </div>
+                <div class="flex-grow-1">
+                    <h1 class="h3 fw-bold mb-0">Attest Scorecard</h1>
+                    <p class="mb-0 opacity-85 small">
+                        Verify <strong>@(round.User?.FullName ?? "Player")</strong>'s round
+                        at <strong>@(round.Course?.Name ?? "—")</strong>
+                        @if (round.Event != null)
+                        {
+                            <span>— @round.Event.Name</span>
+                        }
+                    </p>
+                </div>
+                @if (round.IsAttested)
+                {
+                    <span class="badge bg-white text-success fs-6 px-3 py-2">
+                        <i class="bi bi-patch-check-fill me-1"></i>Verified
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                        <i class="bi bi-clock me-1"></i>Awaiting Attestation
+                    </span>
+                }
+                <button type="button" class="btn btn-outline-light btn-sm print-hide"
+                        onclick="window.print()" title="Print Scorecard">
+                    <i class="bi bi-printer me-1"></i>Print
+                </button>
+            </div>
+        </div>
+
+        <!-- Round Summary -->
+        <div class="card-body">
+            <div class="row g-3 text-center">
+                <div class="col-6 col-md-3">
+                    <div class="fw-bold fs-3 text-success">
+                        @(round.GrossScore?.ToString() ?? "—")
+                    </div>
+                    <div class="text-muted small">Gross Score</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="fw-bold fs-3">
+                        @(round.NetScore?.ToString() ?? "—")
+                    </div>
+                    <div class="text-muted small">Net Score</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="fw-bold fs-3">
+                        @(round.HandicapUsed?.ToString("F1") ?? "—")
+                    </div>
+                    <div class="text-muted small">Handicap Used</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="fw-bold small text-truncate">
+                        @(round.CompletedAt?.ToString("MMM d, yyyy") ?? round.StartedAt?.ToString("MMM d, yyyy") ?? "—")
+                    </div>
+                    <div class="text-muted small">Date Played</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Already Attested Banner -->
+    @if (round.IsAttested)
+    {
+        <div class="alert alert-success border-0 shadow-sm mb-4 d-flex align-items-center gap-3">
+            <i class="bi bi-patch-check-fill fs-3 flex-shrink-0"></i>
+            <div>
+                <strong>This scorecard has been verified.</strong>
+                @if (round.AttestedAt.HasValue)
+                {
+                    <span class="text-muted ms-1 small">on @round.AttestedAt.Value.ToString("MMMM d, yyyy 'at' h:mm tt")</span>
+                }
+                @if (!string.IsNullOrEmpty(round.AttestationNotes))
+                {
+                    <div class="small mt-1 text-muted">
+                        <i class="bi bi-chat-quote me-1"></i>@round.AttestationNotes
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Round Owner Info Banner -->
+    @if (Model.IsRoundOwner && !round.IsAttested)
+    {
+        <div class="alert alert-info border-0 shadow-sm mb-4 d-flex align-items-start gap-3">
+            <i class="bi bi-info-circle-fill fs-4 flex-shrink-0 mt-1"></i>
+            <div>
+                <strong>You cannot attest your own scorecard.</strong>
+                <p class="mb-1 mt-1 small">Share this link with your playing partner so they can verify your round.</p>
+                <div class="input-group input-group-sm" style="max-width:420px;">
+                    <input type="text" class="form-control" id="shareLink"
+                           value="@($"{Request.Scheme}://{Request.Host}{Request.Path}")" readonly />
+                    <button class="btn btn-outline-info" type="button"
+                            onclick="navigator.clipboard.writeText(document.getElementById('shareLink').value);this.textContent='Copied!'">
+                        <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Hole-by-Hole Scorecard -->
+    @if (Model.HoleScores.Any())
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-table me-2 text-success"></i>Hole-by-Hole Scorecard</span>
+                <span class="badge bg-secondary">@Model.HoleScores.Count holes</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm text-center align-middle mb-0 scorecard-table">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-start ps-3">Hole</th>
+                                <th>Par</th>
+                                <th>Score</th>
+                                <th>+/−</th>
+                                <th>Putts</th>
+                                <th>FIR</th>
+                                <th>GIR</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var hs in Model.HoleScores)
+                            {
+                                var scoreToPar = hs.Strokes - hs.Par;
+                                var rowCss = ScoreColor(hs.Strokes, hs.Par);
+                                <tr class="@rowCss">
+                                    <td class="fw-semibold text-start ps-3">@hs.HoleNumber</td>
+                                    <td class="text-muted">@(hs.Par > 0 ? hs.Par.ToString() : "—")</td>
+                                    <td class="fw-bold">@hs.Strokes</td>
+                                    <td>@DiffLabel(scoreToPar)</td>
+                                    <td>@(hs.Putts?.ToString() ?? "—")</td>
+                                    <td>
+                                        @if (hs.FairwayHit.HasValue)
+                                        {
+                                            <i class="bi @(hs.FairwayHit.Value ? "bi-check-circle-fill text-success" : "bi-x-circle text-muted")"></i>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (hs.GreenInRegulation.HasValue)
+                                        {
+                                            <i class="bi @(hs.GreenInRegulation.Value ? "bi-check-circle-fill text-success" : "bi-x-circle text-muted")"></i>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+
+                                @if (hs.HoleNumber == 9 && back9.Any())
+                                {
+                                    <!-- Front 9 subtotal -->
+                                    <tr class="table-light scorecard-totals">
+                                        <td class="text-start ps-3 fw-bold">OUT</td>
+                                        <td>@front9Par</td>
+                                        <td>@front9Score</td>
+                                        <td>@DiffLabel(front9Score - front9Par)</td>
+                                        <td>@(front9.Sum(h => h.Putts) is int fp ? fp.ToString() : "—")</td>
+                                        <td>@front9.Count(h => h.FairwayHit == true)/@front9.Count(h => h.FairwayHit.HasValue)</td>
+                                        <td>@front9.Count(h => h.GreenInRegulation == true)/@front9.Count</td>
+                                    </tr>
+                                }
+                            }
+
+                            @if (back9.Any())
+                            {
+                                <!-- Back 9 subtotal -->
+                                <tr class="table-light scorecard-totals">
+                                    <td class="text-start ps-3 fw-bold">IN</td>
+                                    <td>@back9Par</td>
+                                    <td>@back9Score</td>
+                                    <td>@DiffLabel(back9Score - back9Par)</td>
+                                    <td>@(back9.Sum(h => h.Putts) is int bp ? bp.ToString() : "—")</td>
+                                    <td>@back9.Count(h => h.FairwayHit == true)/@back9.Count(h => h.FairwayHit.HasValue)</td>
+                                    <td>@back9.Count(h => h.GreenInRegulation == true)/@back9.Count</td>
+                                </tr>
+                            }
+                            <!-- Total -->
+                            <tr class="table-success scorecard-totals">
+                                <td class="text-start ps-3 fw-bold text-success fs-6">TOTAL</td>
+                                <td class="fw-bold">@totalPar</td>
+                                <td class="fw-bold fs-6">@totalScore</td>
+                                <td class="fw-bold">@DiffLabel(totalScore - totalPar)</td>
+                                <td>@(Model.HoleScores.Sum(h => h.Putts) is int tp ? tp.ToString() : "—")</td>
+                                <td>@Model.HoleScores.Count(h => h.FairwayHit == true)</td>
+                                <td>@Model.HoleScores.Count(h => h.GreenInRegulation == true)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats summary row -->
+        <div class="row g-3 mb-4">
+            @{
+                var totalPutts = Model.HoleScores.Sum(h => h.Putts);
+                var firHit     = Model.HoleScores.Count(h => h.FairwayHit == true);
+                var firTotal   = Model.HoleScores.Count(h => h.FairwayHit.HasValue);
+                var girHit     = Model.HoleScores.Count(h => h.GreenInRegulation == true);
+            }
+            <div class="col-4">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="fw-bold fs-4">@(totalPutts?.ToString() ?? "—")</div>
+                    <div class="text-muted small"><i class="bi bi-circle me-1"></i>Putts</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="fw-bold fs-4">
+                        @if (firTotal > 0) { @($"{firHit}/{firTotal}") } else { <span>—</span> }
+                    </div>
+                    <div class="text-muted small"><i class="bi bi-arrow-right me-1"></i>FIR</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="fw-bold fs-4">@girHit/@Model.HoleScores.Count</div>
+                    <div class="text-muted small"><i class="bi bi-circle-half me-1"></i>GIR</div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning mb-4">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            No hole-by-hole scores have been recorded for this round.
+        </div>
+    }
+
+    <!-- Action Buttons -->
+    @if (!round.IsAttested && !Model.IsRoundOwner)
+    {
+        <div class="row g-3">
+            <div class="col-md-7">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h5 class="fw-semibold text-success mb-2">
+                            <i class="bi bi-patch-check me-2"></i>Attest This Scorecard
+                        </h5>
+                        <p class="text-muted small mb-3">
+                            By attesting, you confirm you were present during the round and the
+                            scores are accurate to the best of your knowledge.
+                        </p>
+                        <button type="button" class="btn btn-success w-100 mb-2"
+                                data-bs-toggle="modal" data-bs-target="#attestModal">
+                            <i class="bi bi-check-circle me-2"></i>Attest Scorecard
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h5 class="fw-semibold text-danger mb-2">
+                            <i class="bi bi-flag me-2"></i>Dispute Score
+                        </h5>
+                        <p class="text-muted small mb-3">
+                            If you believe the scores are incorrect, submit a dispute and
+                            the club manager will be notified.
+                        </p>
+                        <button type="button" class="btn btn-outline-danger w-100"
+                                data-bs-toggle="modal" data-bs-target="#disputeModal">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Dispute Score
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (round.IsAttested)
+    {
+        <div class="d-flex gap-2">
+            @if (round.Event != null)
+            {
+                <a asp-page="/Events/Details" asp-route-id="@round.EventId" class="btn btn-success">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Event
+                </a>
+            }
+            else
+            {
+                <a asp-page="/Events/Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-calendar-event me-2"></i>Browse Events
+                </a>
+            }
+        </div>
+    }
+</div>
+
+<!-- ──────────── Attest Confirmation Modal ──────────── -->
+<div class="modal fade" id="attestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Attest">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-patch-check me-2"></i>Confirm Attestation
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert border-0 bg-success bg-opacity-10 rounded small mb-3">
+                        <i class="bi bi-info-circle me-2 text-success"></i>
+                        You are attesting <strong>@(round.User?.FullName ?? "this player")</strong>'s
+                        scorecard of <strong>@(round.GrossScore?.ToString() ?? totalScore.ToString())</strong>
+                        gross for the round
+                        @if (round.Event != null) { <span>at <strong>@round.Event.Name</strong></span> }.
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold" for="attestNotes">Notes (optional)</label>
+                        <textarea name="notes" id="attestNotes" class="form-control" rows="2"
+                                  placeholder="Any notes about the round…" maxlength="200"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="bi bi-check-lg me-1"></i>Attest Scorecard
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ──────────── Dispute Modal ──────────── -->
+<div class="modal fade" id="disputeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Dispute">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-danger">
+                        <i class="bi bi-flag me-2"></i>Dispute Score
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Explain the discrepancy. The club manager will review your dispute and
+                        follow up with both parties.
+                    </p>
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">
+                            Reason for Dispute <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="reason" class="form-control" rows="4" required
+                                  placeholder="e.g. Score on hole 7 was recorded as 5 but was actually 6…"
+                                  maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="bi bi-send me-1"></i>Submit Dispute
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

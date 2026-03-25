@@ -32,6 +32,12 @@ public class Round : BaseEntity
     public string? Notes { get; set; }
     public int? StablefordPoints { get; set; }
 
+    // ── Scorecard Attestation ─────────────────────────────────────────────────
+    public bool IsAttested { get; set; } = false;
+    public string? AttestedByUserId { get; set; }
+    public DateTime? AttestedAt { get; set; }
+    public string? AttestationNotes { get; set; }
+
     // Navigation
     public GolfEvent Event { get; set; } = null!;
     public GolfCourse Course { get; set; } = null!;

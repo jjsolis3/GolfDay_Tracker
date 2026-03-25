@@ -1,0 +1,406 @@
+@page
+@model GolfDay.Web.Pages.Club.SetupModel
+@{
+    ViewData["Title"] = "Set Up Your Club";
+    var step = Model.Step;
+    var totalSteps = 5;
+    var stepLabels = new[] { "Details", "Course", "Invite", "Events", "Done" };
+}
+
+@section Styles {
+    <style>
+        body { background: #f4f7f4; }
+
+        /* Progress stepper */
+        .stepper-wrapper {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            position: relative;
+        }
+        .step-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+        .step-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 18px;
+            left: calc(50% + 18px);
+            width: calc(100% - 36px);
+            height: 3px;
+            border-radius: 2px;
+            background: #dee2e6;
+        }
+        .step-item.completed:not(:last-child)::after { background: #198754; }
+        .step-circle {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: .9rem;
+            border: 2px solid #dee2e6;
+            background: #fff; color: #adb5bd;
+            position: relative; z-index: 1;
+            transition: all .25s;
+        }
+        .step-item.completed .step-circle  { background: #198754; border-color: #198754; color: #fff; }
+        .step-item.active .step-circle     { background: #fff; border-color: #198754; color: #198754; }
+        .step-label { font-size: .68rem; margin-top: 5px; color: #adb5bd; }
+        .step-item.active .step-label  { color: #198754; font-weight: 700; }
+        .step-item.completed .step-label { color: #198754; }
+
+        /* Wizard card */
+        .wizard-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,.10);
+        }
+
+        /* Confetti (CSS-only) */
+        @@keyframes confettiFall {
+            0%   { transform: translateY(-30px) rotate(0deg)   scaleX(1); opacity: 1; }
+            50%  { transform: translateY(50vh)  rotate(420deg) scaleX(-1); }
+            100% { transform: translateY(105vh) rotate(720deg) scaleX(1); opacity: 0; }
+        }
+        .confetti-piece {
+            position: fixed; top: -20px;
+            width: 9px; height: 14px;
+            border-radius: 2px;
+            animation: confettiFall linear forwards;
+            z-index: 9999; pointer-events: none;
+        }
+    </style>
+}
+
+<div class="container py-5" style="max-width:680px;">
+
+    <!-- ── Progress Indicator ── -->
+    <div class="stepper-wrapper mb-4 px-2">
+        @for (int s = 1; s <= totalSteps; s++)
+        {
+            var cls = s < step ? "completed" : s == step ? "active" : "";
+            <div class="step-item @cls">
+                <div class="step-circle">
+                    @if (s < step)
+                    { <i class="bi bi-check-lg"></i> }
+                    else
+                    { @s }
+                </div>
+                <span class="step-label">@stepLabels[s - 1]</span>
+            </div>
+        }
+    </div>
+    <p class="text-center text-muted small mb-4">Step @step of @totalSteps</p>
+
+    <!-- ──────────── STEP 1: Club Details ──────────── -->
+    @if (step == 1)
+    {
+        <div class="card wizard-card">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h2 class="h4 fw-bold mb-0"><i class="bi bi-buildings me-2 text-success"></i>Club Details</h2>
+                <p class="text-muted small mb-0 mt-1">Tell us about your golf club</p>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form method="post" asp-page-handler="Step1">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3 mt-3">
+                        <label class="form-label fw-semibold">
+                            Club Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="ClubName" class="form-control form-control-lg"
+                               value="@Model.ClubName"
+                               placeholder="e.g. Pineridge Golf Club"
+                               required maxlength="100" autofocus />
+                        @if (!ViewData.ModelState.IsValid && ViewData.ModelState["ClubName"]?.Errors.Any() == true)
+                        {
+                            <div class="text-danger small mt-1">@ViewData.ModelState["ClubName"]!.Errors[0].ErrorMessage</div>
+                        }
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea name="ClubDescription" class="form-control" rows="3"
+                                  placeholder="A brief description of your club…"
+                                  maxlength="500">@Model.ClubDescription</textarea>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-8">
+                            <label class="form-label fw-semibold">City</label>
+                            <input type="text" name="City" class="form-control"
+                                   value="@Model.City" placeholder="e.g. Austin" maxlength="100" />
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label fw-semibold">State</label>
+                            <input type="text" name="State" class="form-control"
+                                   value="@Model.State" placeholder="TX" maxlength="10" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Contact Email</label>
+                        <input type="email" name="ContactEmail" class="form-control"
+                               value="@Model.ContactEmail" placeholder="club@example.com" maxlength="200" />
+                    </div>
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="IsPublic"
+                                   id="isPublic" value="true" @(Model.IsPublic ? "checked" : "") />
+                            <label class="form-check-label" for="isPublic">
+                                <strong>Public club</strong>
+                                <span class="text-muted small ms-1">— anyone can find and request to join</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-success btn-lg px-5">
+                            Continue <i class="bi bi-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <!-- ──────────── STEP 2: Add Your Course ──────────── -->
+    @if (step == 2)
+    {
+        <div class="card wizard-card">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h2 class="h4 fw-bold mb-0"><i class="bi bi-flag me-2 text-success"></i>Add Your Course</h2>
+                <p class="text-muted small mb-0 mt-1">
+                    Set up the primary course for <strong>@(Model.Club?.Name ?? "your club")</strong>
+                </p>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form method="post" asp-page-handler="Step2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ClubId" value="@Model.ClubId" />
+
+                    <div class="mb-3 mt-3">
+                        <label class="form-label fw-semibold">
+                            Course Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="CourseName" class="form-control form-control-lg"
+                               value="@Model.CourseName"
+                               placeholder="e.g. Championship Course"
+                               required maxlength="100" autofocus />
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Course Rating</label>
+                            <input type="number" name="CourseRating" class="form-control"
+                                   value="@Model.CourseRating.ToString("F1")"
+                                   step="0.1" min="55" max="85" />
+                            <div class="form-text">Typically 68–76 for 18 holes</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Slope Rating</label>
+                            <input type="number" name="SlopeRating" class="form-control"
+                                   value="@Model.SlopeRating" min="55" max="155" />
+                            <div class="form-text">55–155, average is 113</div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Holes</label>
+                            <div class="d-flex gap-2 mt-1">
+                                <div class="flex-fill">
+                                    <input type="radio" class="btn-check" name="NumberOfHoles"
+                                           id="holes9" value="9" @(Model.NumberOfHoles == 9 ? "checked" : "") />
+                                    <label class="btn btn-outline-success w-100" for="holes9">9 Holes</label>
+                                </div>
+                                <div class="flex-fill">
+                                    <input type="radio" class="btn-check" name="NumberOfHoles"
+                                           id="holes18" value="18"
+                                           @(Model.NumberOfHoles != 9 ? "checked" : "") />
+                                    <label class="btn btn-outline-success w-100" for="holes18">18 Holes</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Par</label>
+                            <input type="number" name="CoursePar" class="form-control"
+                                   value="@Model.CoursePar" min="27" max="73" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-page asp-route-step="1" asp-route-clubId="@Model.ClubId"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Back
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg px-5">
+                            Continue <i class="bi bi-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <!-- ──────────── STEP 3: Invite Members ──────────── -->
+    @if (step == 3)
+    {
+        <div class="card wizard-card">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h2 class="h4 fw-bold mb-0">
+                    <i class="bi bi-envelope-paper me-2 text-success"></i>Invite Members
+                </h2>
+                <p class="text-muted small mb-0 mt-1">Invite golfers to join your new club</p>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <div class="alert border-0 bg-success bg-opacity-10 rounded mb-3 small mt-3">
+                    <i class="bi bi-info-circle me-2 text-success"></i>
+                    Each person will receive an email invitation with a secure link.
+                    Invitations expire after 14 days. You can always invite more later.
+                </div>
+                <form method="post" asp-page-handler="Step3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ClubId" value="@Model.ClubId" />
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Email Addresses</label>
+                        <textarea name="InviteEmails" class="form-control" rows="6"
+                                  placeholder="Enter email addresses separated by commas, semicolons, or new lines:&#10;&#10;alice@example.com&#10;bob@example.com, carol@example.com"
+                                  maxlength="2000">@Model.InviteEmails</textarea>
+                        <div class="form-text">Up to 20 addresses at a time.</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-page asp-route-step="2" asp-route-clubId="@Model.ClubId"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Back
+                        </a>
+                        <div class="d-flex gap-2">
+                            <a asp-page asp-route-step="4" asp-route-clubId="@Model.ClubId"
+                               class="btn btn-outline-secondary">
+                                Skip
+                            </a>
+                            <button type="submit" class="btn btn-success px-4">
+                                Send Invites <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <!-- ──────────── STEP 4: Create First Event ──────────── -->
+    @if (step == 4)
+    {
+        <div class="card wizard-card">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                <h2 class="h4 fw-bold mb-0">
+                    <i class="bi bi-calendar-event me-2 text-success"></i>Create First Event
+                </h2>
+                <p class="text-muted small mb-0 mt-1">Get the rounds going!</p>
+            </div>
+            <div class="card-body px-4 pb-4 text-center">
+                <div class="py-4">
+                    <i class="bi bi-calendar-check display-1 text-success opacity-75"></i>
+                    <h4 class="mt-3 fw-bold">Your club is ready!</h4>
+                    <p class="text-muted mb-4">
+                        Create your first event to start tracking scores, handicaps, and standings
+                        right away.
+                    </p>
+                    <a asp-area="Admin" asp-page="/Events/Create" asp-route-clubId="@Model.ClubId"
+                       class="btn btn-success btn-lg px-5 mb-3 d-block">
+                        <i class="bi bi-calendar-plus me-2"></i>Create First Event Now
+                    </a>
+                </div>
+
+                <form method="post" asp-page-handler="Step4">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ClubId" value="@Model.ClubId" />
+                    <div class="d-flex justify-content-between mt-2">
+                        <a asp-page asp-route-step="3" asp-route-clubId="@Model.ClubId"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Back
+                        </a>
+                        <button type="submit" class="btn btn-link text-muted">
+                            I'll do this later <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <!-- ──────────── STEP 5: Complete ──────────── -->
+    @if (step == 5)
+    {
+        @{
+            var confettiColors = new[] { "#198754","#0d6efd","#ffc107","#dc3545","#0dcaf0","#fd7e14","#6f42c1" };
+            var rng = new Random(7);
+        }
+        @for (int ci = 0; ci < 60; ci++)
+        {
+            var left  = rng.Next(0, 100);
+            var delay = Math.Round(rng.NextDouble() * 3.5, 1);
+            var dur   = Math.Round(3.5 + rng.NextDouble() * 3.0, 1);
+            var size  = rng.Next(7, 14);
+            var color = confettiColors[rng.Next(confettiColors.Length)];
+            <div class="confetti-piece"
+                 style="left:@(left)vw;
+                        background:@color;
+                        width:@(size)px;height:@(size + 4)px;
+                        animation-duration:@(dur)s;
+                        animation-delay:@(delay)s;"></div>
+        }
+
+        <div class="card wizard-card text-center">
+            <div class="card-body py-5 px-4">
+                <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width:90px;height:90px;">
+                    <i class="bi bi-trophy-fill text-success" style="font-size:2.8rem;"></i>
+                </div>
+                <h2 class="fw-bold text-success mb-1">Your club is live!</h2>
+                @if (Model.Club != null)
+                {
+                    <p class="fs-5 text-muted mb-4">
+                        Welcome to <strong class="text-dark">@Model.Club.Name</strong> — let's play some golf!
+                    </p>
+                }
+                else
+                {
+                    <p class="text-muted mb-4">Everything is set up and ready to go.</p>
+                }
+
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-4">
+                        <a asp-page="/Club/Dashboard" asp-route-slug="@(Model.Club?.Slug ?? "")"
+                           class="card h-100 border-0 shadow-sm text-decoration-none py-3 px-2 d-flex flex-column align-items-center justify-content-center">
+                            <i class="bi bi-speedometer2 display-5 text-success mb-2"></i>
+                            <div class="fw-semibold">Dashboard</div>
+                            <div class="text-muted small">Club overview</div>
+                        </a>
+                    </div>
+                    <div class="col-sm-4">
+                        <a asp-area="Admin" asp-page="/Clubs/Invitations" asp-route-id="@Model.ClubId"
+                           class="card h-100 border-0 shadow-sm text-decoration-none py-3 px-2 d-flex flex-column align-items-center justify-content-center">
+                            <i class="bi bi-envelope-paper display-5 text-primary mb-2"></i>
+                            <div class="fw-semibold">Invite Members</div>
+                            <div class="text-muted small">Grow your club</div>
+                        </a>
+                    </div>
+                    <div class="col-sm-4">
+                        <a asp-area="Admin" asp-page="/Events/Create" asp-route-clubId="@Model.ClubId"
+                           class="card h-100 border-0 shadow-sm text-decoration-none py-3 px-2 d-flex flex-column align-items-center justify-content-center">
+                            <i class="bi bi-calendar-plus display-5 text-warning mb-2"></i>
+                            <div class="fw-semibold">Create Event</div>
+                            <div class="text-muted small">First round</div>
+                        </a>
+                    </div>
+                </div>
+
+                <a asp-page="/Index" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-house me-1"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    }
+</div>

@@ -1,0 +1,365 @@
+@page
+@model GolfDay.Web.Pages.Club.ConditionsModel
+@using GolfDay.Domain.Enums
+@{
+    ViewData["Title"] = $"Course Conditions – {Model.Club?.Name}";
+
+    string FairwayBadgeClass(FairwayCondition fc) => fc switch
+    {
+        FairwayCondition.Excellent => "bg-success",
+        FairwayCondition.Good      => "bg-primary",
+        FairwayCondition.Fair      => "bg-warning text-dark",
+        FairwayCondition.Poor      => "bg-danger",
+        _                          => "bg-secondary"
+    };
+
+    string FairwayIcon(FairwayCondition fc) => fc switch
+    {
+        FairwayCondition.Excellent => "bi-stars",
+        FairwayCondition.Good      => "bi-check-circle",
+        FairwayCondition.Fair      => "bi-dash-circle",
+        FairwayCondition.Poor      => "bi-x-circle",
+        _                          => "bi-circle"
+    };
+
+    string GreenBadgeClass(GreenSpeed gs) => gs switch
+    {
+        GreenSpeed.Slow     => "bg-info text-dark",
+        GreenSpeed.Normal   => "bg-success",
+        GreenSpeed.Fast     => "bg-warning text-dark",
+        GreenSpeed.VeryFast => "bg-danger",
+        _                   => "bg-secondary"
+    };
+
+    string TimeAgo(DateTime dt)
+    {
+        var diff = DateTime.UtcNow - dt;
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
+        return $"{(int)diff.TotalDays}d ago";
+    }
+}
+
+@if (Model.Club == null)
+{
+    <div class="container py-5 text-center">
+        <i class="bi bi-buildings display-1 text-muted"></i>
+        <h3 class="mt-3">Club Not Found</h3>
+        <a asp-page="/Index" class="btn btn-outline-success mt-3">Return Home</a>
+    </div>
+    return;
+}
+
+@section Styles {
+    <style>
+        .conditions-banner {
+            background: linear-gradient(135deg, #1a3c2e 0%, #2d6a4f 60%, #52b788 100%);
+        }
+        .report-card { transition: box-shadow .15s; }
+        .report-card:hover { box-shadow: 0 .5rem 1.25rem rgba(0,0,0,.1) !important; }
+        .official-glow { box-shadow: 0 0 0 3px rgba(25, 135, 84, .35); }
+        .avatar-sm {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+        .condition-radio input[type=radio] { display: none; }
+        .condition-radio label {
+            cursor: pointer; padding: .4rem .9rem; border-radius: 6px;
+            border: 2px solid #dee2e6; transition: all .15s; font-size: .875rem;
+        }
+        .condition-radio input[type=radio]:checked + label { border-color: currentColor; font-weight: 600; }
+    </style>
+}
+
+<!-- Banner -->
+<div class="conditions-banner text-white py-4 mb-4">
+    <div class="container">
+        <nav aria-label="breadcrumb" class="mb-2">
+            <ol class="breadcrumb mb-0" style="--bs-breadcrumb-divider-color:rgba(255,255,255,.5);">
+                <li class="breadcrumb-item">
+                    <a asp-page="/Club/Dashboard" asp-route-slug="@Model.Club.Slug"
+                       class="text-white-50 text-decoration-none">@Model.Club.Name</a>
+                </li>
+                <li class="breadcrumb-item active text-white">Course Conditions</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h1 class="fw-bold mb-1 h2">
+                    <i class="bi bi-cloud-sun me-2"></i>Course Conditions
+                </h1>
+                <p class="mb-0 opacity-75 small">
+                    Reports from the last 3 days · @Model.Reports.Count report(s)
+                </p>
+            </div>
+            <button type="button" class="btn btn-light text-success"
+                    data-bs-toggle="modal" data-bs-target="#reportModal">
+                <i class="bi bi-plus-lg me-1"></i>Report Conditions
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    <!-- Alerts -->
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@success
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Official Report Banner -->
+    @if (Model.OfficialReport != null)
+    {
+        var o = Model.OfficialReport;
+        <div class="card border-0 shadow official-glow mb-4 bg-success bg-opacity-5">
+            <div class="card-body px-4 py-3">
+                <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                    <span class="badge bg-success rounded-pill px-3 py-2">
+                        <i class="bi bi-patch-check-fill me-1"></i>Official Report
+                    </span>
+                    <span class="text-muted small">
+                        @(o.Course?.Name ?? "Course") · @TimeAgo(o.ReportedAt)
+                    </span>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="small text-muted mb-1">Fairway Condition</div>
+                        <span class="badge @FairwayBadgeClass(o.FairwayCondition) rounded-pill px-3 py-2 fs-6">
+                            <i class="bi @FairwayIcon(o.FairwayCondition) me-1"></i>@o.FairwayCondition
+                        </span>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="small text-muted mb-1">Green Speed</div>
+                        <span class="badge @GreenBadgeClass(o.GreenSpeed) rounded-pill px-3 py-2 fs-6">
+                            <i class="bi bi-speedometer me-1"></i>@o.GreenSpeed
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(o.PinPositions))
+                    {
+                        <div class="col-sm-6 col-md-3">
+                            <div class="small text-muted mb-1">Pin Positions</div>
+                            <span class="fw-semibold">@o.PinPositions</span>
+                        </div>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(o.Notes))
+                {
+                    <p class="text-body mb-2">@o.Notes</p>
+                }
+                <small class="text-muted">
+                    <i class="bi bi-person-badge me-1"></i>
+                    Reported by @(o.ReportedBy?.FullName ?? "Staff") on @o.ReportedAt.ToString("MMM d, yyyy 'at' h:mm tt")
+                </small>
+            </div>
+        </div>
+    }
+
+    <!-- Reports Feed -->
+    @if (!Model.Reports.Any())
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-cloud-sun fs-1 opacity-25 d-block mb-3"></i>
+                <h5>No condition reports in the last 3 days</h5>
+                <p class="mb-4 small">Be the first to report today's course conditions.</p>
+                <button type="button" class="btn btn-success"
+                        data-bs-toggle="modal" data-bs-target="#reportModal">
+                    <i class="bi bi-plus-lg me-1"></i>Submit Report
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        var memberReports = Model.Reports.Where(r => !r.IsOfficialReport).ToList();
+        @if (memberReports.Any())
+        {
+            <h6 class="text-uppercase text-muted fw-semibold mb-3">
+                <i class="bi bi-people me-1"></i>Member Reports
+            </h6>
+            <div class="d-flex flex-column gap-3">
+                @foreach (var r in memberReports)
+                {
+                    <div class="card border-0 shadow-sm report-card">
+                        <div class="card-body px-4 py-3">
+                            <div class="d-flex align-items-start gap-3">
+                                <!-- Avatar -->
+                                <div class="avatar-sm bg-success bg-opacity-10">
+                                    @if (!string.IsNullOrEmpty(r.ReportedBy?.ProfilePictureUrl))
+                                    {
+                                        <img src="@r.ReportedBy.ProfilePictureUrl" alt="@r.ReportedBy.FullName" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-person text-success small"></i>
+                                    }
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                        <span class="fw-semibold small">@(r.ReportedBy?.FullName ?? "Member")</span>
+                                        @if (r.Course != null)
+                                        {
+                                            <span class="text-muted small">
+                                                <i class="bi bi-geo-alt me-1"></i>@r.Course.Name
+                                            </span>
+                                        }
+                                        <span class="text-muted small ms-auto">@TimeAgo(r.ReportedAt)</span>
+                                    </div>
+                                    <div class="d-flex gap-2 flex-wrap mb-2">
+                                        <span class="badge @FairwayBadgeClass(r.FairwayCondition) rounded-pill">
+                                            <i class="bi @FairwayIcon(r.FairwayCondition) me-1"></i>Fairway: @r.FairwayCondition
+                                        </span>
+                                        <span class="badge @GreenBadgeClass(r.GreenSpeed) rounded-pill">
+                                            <i class="bi bi-speedometer me-1"></i>Greens: @r.GreenSpeed
+                                        </span>
+                                        @if (!string.IsNullOrEmpty(r.PinPositions))
+                                        {
+                                            <span class="badge bg-light text-dark rounded-pill border">
+                                                <i class="bi bi-flag me-1"></i>Pins: @r.PinPositions
+                                            </span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(r.Notes))
+                                    {
+                                        <p class="text-muted small mb-0">@r.Notes</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+<!-- Report Conditions Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel">
+    <div class="modal-dialog">
+        <form method="post" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="reportModalLabel">
+                    <i class="bi bi-cloud-sun me-2 text-success"></i>Report Course Conditions
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Course Selector -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Course <span class="text-danger">*</span></label>
+                    @if (Model.Courses.Count == 1)
+                    {
+                        <input type="hidden" name="SelectedCourseId" value="@Model.Courses[0].Id" />
+                        <div class="form-control-plaintext fw-semibold">
+                            <i class="bi bi-geo-alt me-1 text-success"></i>@Model.Courses[0].Name
+                        </div>
+                    }
+                    else
+                    {
+                        <select name="SelectedCourseId" class="form-select" required>
+                            <option value="" disabled selected>Select course…</option>
+                            @foreach (var course in Model.Courses)
+                            {
+                                <option value="@course.Id">@course.Name</option>
+                            }
+                        </select>
+                    }
+                </div>
+
+                <!-- Fairway Condition -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Fairway Condition <span class="text-danger">*</span></label>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <div class="condition-radio">
+                            <input type="radio" name="FairwayConditionVal" id="fw0" value="0" required />
+                            <label for="fw0" class="text-success border-success">
+                                <i class="bi bi-stars me-1"></i>Excellent
+                            </label>
+                        </div>
+                        <div class="condition-radio">
+                            <input type="radio" name="FairwayConditionVal" id="fw1" value="1" />
+                            <label for="fw1" class="text-primary border-primary">
+                                <i class="bi bi-check-circle me-1"></i>Good
+                            </label>
+                        </div>
+                        <div class="condition-radio">
+                            <input type="radio" name="FairwayConditionVal" id="fw2" value="2" />
+                            <label for="fw2" class="text-warning border-warning">
+                                <i class="bi bi-dash-circle me-1"></i>Fair
+                            </label>
+                        </div>
+                        <div class="condition-radio">
+                            <input type="radio" name="FairwayConditionVal" id="fw3" value="3" />
+                            <label for="fw3" class="text-danger border-danger">
+                                <i class="bi bi-x-circle me-1"></i>Poor
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Green Speed -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Green Speed <span class="text-danger">*</span></label>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <div class="condition-radio">
+                            <input type="radio" name="GreenSpeedVal" id="gs0" value="0" required />
+                            <label for="gs0" class="text-info border-info">
+                                <i class="bi bi-speedometer me-1"></i>Slow
+                            </label>
+                        </div>
+                        <div class="condition-radio">
+                            <input type="radio" name="GreenSpeedVal" id="gs1" value="1" />
+                            <label for="gs1" class="text-success border-success">
+                                <i class="bi bi-speedometer me-1"></i>Normal
+                            </label>
+                        </div>
+                        <div class="condition-radio">
+                            <input type="radio" name="GreenSpeedVal" id="gs2" value="2" />
+                            <label for="gs2" class="text-warning border-warning">
+                                <i class="bi bi-speedometer2 me-1"></i>Fast
+                            </label>
+                        </div>
+                        <div class="condition-radio">
+                            <input type="radio" name="GreenSpeedVal" id="gs3" value="3" />
+                            <label for="gs3" class="text-danger border-danger">
+                                <i class="bi bi-lightning-fill me-1"></i>Very Fast
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pin Positions -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        Pin Positions <span class="text-muted fw-normal">(optional)</span>
+                    </label>
+                    <input type="text" name="PinPositions" class="form-control"
+                           placeholder="e.g. Front-Middle-Back, Sheet A" maxlength="200" />
+                    <div class="form-text">Describe today's pin placements if known.</div>
+                </div>
+
+                <!-- Notes -->
+                <div class="mb-1">
+                    <label class="form-label fw-semibold">
+                        Notes <span class="text-muted fw-normal">(optional)</span>
+                    </label>
+                    <textarea name="Notes" class="form-control" rows="3"
+                              placeholder="Any additional notes about the conditions today…"
+                              maxlength="1000"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-send me-1"></i>Submit Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

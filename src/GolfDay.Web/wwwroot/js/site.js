@@ -59,3 +59,72 @@ function getScoreLabel(scoreToPar) {
         default: return scoreToPar > 0 ? '+' + scoreToPar : scoreToPar.toString();
     }
 }
+
+// ================================================
+// Dark Mode Toggle
+// ================================================
+(function () {
+    var STORAGE_KEY = 'golfday-theme';
+
+    function getPreferred() {
+        var stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) return stored;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem(STORAGE_KEY, theme);
+        var btn = document.getElementById('dark-mode-toggle');
+        if (btn) {
+            btn.querySelector('i').className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            btn.setAttribute('title', theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode');
+        }
+    }
+
+    // Apply immediately to avoid flash
+    applyTheme(getPreferred());
+
+    document.addEventListener('DOMContentLoaded', function () {
+        applyTheme(getPreferred());
+        var btn = document.getElementById('dark-mode-toggle');
+        if (btn) {
+            btn.addEventListener('click', function () {
+                var current = document.documentElement.getAttribute('data-bs-theme') || 'light';
+                applyTheme(current === 'dark' ? 'light' : 'dark');
+            });
+        }
+    });
+})();
+
+// ================================================
+// Quick Actions FAB
+// ================================================
+document.addEventListener('DOMContentLoaded', function () {
+    var fabMain = document.getElementById('fab-main');
+    var fabActions = document.getElementById('fab-actions');
+    if (!fabMain || !fabActions) return;
+
+    fabMain.addEventListener('click', function () {
+        var isOpen = fabActions.classList.contains('show');
+        if (isOpen) {
+            fabActions.classList.remove('show');
+            fabMain.classList.remove('open');
+            fabMain.setAttribute('aria-expanded', 'false');
+        } else {
+            fabActions.classList.add('show');
+            fabMain.classList.add('open');
+            fabMain.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    // Close FAB when clicking outside
+    document.addEventListener('click', function (e) {
+        var container = document.getElementById('fab-container');
+        if (container && !container.contains(e.target)) {
+            fabActions.classList.remove('show');
+            fabMain.classList.remove('open');
+            fabMain.setAttribute('aria-expanded', 'false');
+        }
+    });
+});

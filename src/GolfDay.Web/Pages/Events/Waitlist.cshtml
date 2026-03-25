@@ -1,0 +1,311 @@
+@page "{eventId:int}"
+@model GolfDay.Web.Pages.Events.WaitlistModel
+@using GolfDay.Domain.Enums
+@{
+    ViewData["Title"] = $"Waitlist – {Model.Event?.Name}";
+    var ev = Model.Event!;
+    var spotsLeft = ev.MaxParticipants - Model.ParticipantCount;
+    var isFull = Model.ParticipantCount >= ev.MaxParticipants;
+    var myEntry = Model.MyEntry;
+    var onWaitlist = myEntry != null && myEntry.Status == WaitlistStatus.Waiting;
+    var wasPromoted = myEntry?.Status == WaitlistStatus.Promoted;
+}
+
+@if (Model.Event == null)
+{
+    <div class="container py-5 text-center">
+        <i class="bi bi-calendar-x display-1 text-muted"></i>
+        <h3 class="mt-3">Event Not Found</h3>
+        <a asp-page="/Events/Index" class="btn btn-outline-success mt-3">Back to Events</a>
+    </div>
+    return;
+}
+
+@section Styles {
+    <style>
+        .event-banner {
+            background: linear-gradient(135deg, #1a3c2e 0%, #2d6a4f 50%, #40916c 100%);
+        }
+        .waitlist-item { transition: background .15s; }
+        .waitlist-item:hover { background: rgba(0,0,0,.03); }
+        .position-bubble {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: .9rem; flex-shrink: 0;
+        }
+        .avatar-circle {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+}
+
+<!-- Event Banner -->
+<div class="event-banner text-white py-4 mb-4">
+    <div class="container">
+        <nav aria-label="breadcrumb" class="mb-2">
+            <ol class="breadcrumb mb-0" style="--bs-breadcrumb-divider-color:rgba(255,255,255,.5);">
+                <li class="breadcrumb-item">
+                    <a asp-page="/Events/Index" class="text-white-50 text-decoration-none">Events</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a asp-page="/Events/Details" asp-route-id="@ev.Id"
+                       class="text-white-50 text-decoration-none">@ev.Name</a>
+                </li>
+                <li class="breadcrumb-item active text-white">Waitlist</li>
+            </ol>
+        </nav>
+        <div class="row align-items-center">
+            <div class="col">
+                <h1 class="fw-bold mb-1">@ev.Name</h1>
+                <div class="d-flex flex-wrap gap-3 small" style="opacity:.85;">
+                    <span><i class="bi bi-calendar me-1"></i>@ev.EventDate.ToString("dddd, MMMM d, yyyy")</span>
+                    @if (ev.Club != null)
+                    {
+                        <span><i class="bi bi-buildings me-1"></i>@ev.Club.Name</span>
+                    }
+                    <span>
+                        <i class="bi bi-people me-1"></i>
+                        @Model.ParticipantCount / @ev.MaxParticipants registered
+                    </span>
+                </div>
+            </div>
+            <div class="col-auto mt-3 mt-sm-0">
+                @if (isFull)
+                {
+                    <span class="badge bg-danger rounded-pill px-3 py-2 fs-6">
+                        <i class="bi bi-x-circle me-1"></i>Event Full
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-success rounded-pill px-3 py-2 fs-6">
+                        <i class="bi bi-check-circle me-1"></i>@spotsLeft spot(s) open
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    <!-- Alerts -->
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@success
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] is string error)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle me-2"></i>@error
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Left: Waitlist queue -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-list-ol me-2 text-primary"></i>Waitlist Queue
+                        <span class="badge bg-secondary rounded-pill ms-2">@Model.WaitlistEntries.Count</span>
+                    </h5>
+                </div>
+
+                @if (!Model.WaitlistEntries.Any())
+                {
+                    <div class="card-body text-center py-5 text-muted">
+                        <i class="bi bi-person-plus fs-1 opacity-25 d-block mb-3"></i>
+                        <h6>No one is on the waitlist yet</h6>
+                        @if (!Model.IsParticipant && isFull && !onWaitlist)
+                        {
+                            <p class="mb-0 small">The event is full — be the first to join the waitlist!</p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var entry in Model.WaitlistEntries)
+                        {
+                            var isMe = myEntry?.UserId == entry.UserId;
+                            <div class="list-group-item waitlist-item px-4 py-3 @(isMe ? "bg-primary bg-opacity-5" : "")">
+                                <div class="d-flex align-items-center gap-3">
+                                    <!-- Position bubble -->
+                                    <div class="position-bubble @(entry.Position == 1 ? "bg-warning text-dark" : "bg-light text-secondary")">
+                                        @entry.Position
+                                    </div>
+                                    <!-- Avatar -->
+                                    <div class="avatar-circle bg-success bg-opacity-10">
+                                        @if (!string.IsNullOrEmpty(entry.User?.ProfilePictureUrl))
+                                        {
+                                            <img src="@entry.User.ProfilePictureUrl" alt="@entry.User.FullName" />
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-person text-success"></i>
+                                        }
+                                    </div>
+                                    <!-- Name -->
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold d-flex align-items-center gap-2 flex-wrap">
+                                            @entry.User?.FullName
+                                            @if (isMe)
+                                            {
+                                                <span class="badge bg-primary rounded-pill">You</span>
+                                            }
+                                            @if (entry.Position == 1)
+                                            {
+                                                <span class="badge bg-warning text-dark rounded-pill">
+                                                    <i class="bi bi-arrow-up me-1"></i>Next Up
+                                                </span>
+                                            }
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock me-1"></i>Joined
+                                            @entry.CreatedAt.ToString("MMM d, yyyy")
+                                        </small>
+                                    </div>
+                                    <!-- Handicap -->
+                                    @if (entry.User?.HandicapIndex.HasValue == true)
+                                    {
+                                        <div class="text-end d-none d-sm-block">
+                                            <div class="fw-bold text-success">@entry.User.HandicapIndex.Value.ToString("F1")</div>
+                                            <small class="text-muted">HCP</small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Right: My status & actions -->
+        <div class="col-lg-4">
+
+            @if (Model.IsParticipant)
+            {
+                <div class="card border-0 shadow-sm mb-4 border-start border-success border-4">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-check-circle-fill fs-1 text-success d-block mb-2"></i>
+                        <h6 class="fw-bold mb-1">You're Registered!</h6>
+                        <p class="text-muted small mb-3">You have a confirmed spot in this event.</p>
+                        <a asp-page="/Events/Details" asp-route-id="@ev.Id"
+                           class="btn btn-success btn-sm w-100">
+                            <i class="bi bi-calendar-check me-1"></i>View Event
+                        </a>
+                    </div>
+                </div>
+            }
+            else if (wasPromoted)
+            {
+                <div class="card border-0 shadow-sm mb-4 border-start border-primary border-4">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-star-fill fs-1 text-primary d-block mb-2"></i>
+                        <h6 class="fw-bold mb-1">You've Been Promoted!</h6>
+                        <p class="text-muted small mb-3">A spot opened up — complete your registration now.</p>
+                        <a asp-page="/Events/Details" asp-route-id="@ev.Id"
+                           class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-pencil-square me-1"></i>Register Now
+                        </a>
+                    </div>
+                </div>
+            }
+            else if (onWaitlist)
+            {
+                <div class="card border-0 shadow-sm mb-4 border-start border-warning border-4">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-hourglass-split fs-1 text-warning d-block mb-2"></i>
+                        <h6 class="fw-bold mb-1">You're on the Waitlist</h6>
+                        <p class="text-muted small mb-1">Your current position:</p>
+                        <div class="display-6 fw-bold text-warning mb-3">#@myEntry!.Position</div>
+                        <p class="text-muted small mb-3">You'll be notified if a spot opens up.</p>
+                        <form method="post" asp-page-handler="Leave"
+                              onsubmit="return confirm('Leave the waitlist for this event?');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                <i class="bi bi-x-circle me-1"></i>Leave Waitlist
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else if (!isFull)
+            {
+                <div class="card border-0 shadow-sm mb-4 bg-success bg-opacity-5">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-calendar-plus fs-1 text-success d-block mb-2"></i>
+                        <h6 class="fw-bold mb-1">Spots Available</h6>
+                        <p class="text-muted small mb-3">
+                            @spotsLeft spot(s) remaining — register directly instead of joining the waitlist.
+                        </p>
+                        <a asp-page="/Events/Details" asp-route-id="@ev.Id"
+                           class="btn btn-success w-100">
+                            <i class="bi bi-person-plus me-1"></i>Register for Event
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-person-plus fs-1 text-primary d-block mb-2"></i>
+                        <h6 class="fw-bold mb-1">Join the Waitlist</h6>
+                        <p class="text-muted small mb-3">
+                            The event is full. Join the waitlist and we'll notify you if a spot opens.
+                        </p>
+                        <form method="post" asp-page-handler="Join">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-list-ol me-1"></i>Join Waitlist
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+
+            <!-- Event info card -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-info-circle me-2 text-muted"></i>Event Info</h6>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Date</span>
+                        <span class="small fw-semibold">@ev.EventDate.ToString("MMM d, yyyy")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Registered</span>
+                        <span class="small fw-semibold">
+                            @Model.ParticipantCount / @ev.MaxParticipants
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Waitlist</span>
+                        <span class="small fw-semibold">@Model.WaitlistEntries.Count waiting</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Status</span>
+                        <span class="badge bg-@(ev.Status == GolfDay.Domain.Enums.EventStatus.Scheduled ? "primary" : ev.Status == GolfDay.Domain.Enums.EventStatus.InProgress ? "danger" : "secondary") rounded-pill">
+                            @ev.Status
+                        </span>
+                    </li>
+                </ul>
+                <div class="card-footer bg-white border-top py-3">
+                    <a asp-page="/Events/Details" asp-route-id="@ev.Id"
+                       class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Event
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

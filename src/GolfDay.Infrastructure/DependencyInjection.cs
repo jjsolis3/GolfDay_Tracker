@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IStatsService, StatsService>();
         services.AddScoped<IHandicapService, HandicapService>();
         services.AddScoped<ILeagueSchedulerService, LeagueSchedulerService>();
+        services.AddScoped<INotificationService, NotificationService>();
         services.AddHostedService<BackgroundJobService>();
 
         return services;
