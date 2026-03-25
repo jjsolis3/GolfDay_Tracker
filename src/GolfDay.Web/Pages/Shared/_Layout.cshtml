@@ -114,6 +114,12 @@
                                 <a class="btn btn-warning btn-sm px-3" asp-page="/Account/Register">Join Free</a>
                             </li>
                         }
+                        <!-- Dark Mode Toggle -->
+                        <li class="nav-item ms-2">
+                            <button id="dark-mode-toggle" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">
+                                <i class="bi bi-moon-fill"></i>
+                            </button>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -140,6 +146,42 @@
 
     <!-- Live notification toast container -->
     <div id="live-notifications" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999"></div>
+
+    <!-- Quick Actions FAB (authenticated users only) -->
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <div id="fab-container" class="print-hide">
+            <button id="fab-main" aria-label="Quick Actions" aria-expanded="false">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            <div id="fab-actions" class="fab-actions" role="menu">
+                <div class="fab-action-item">
+                    <label>Post Score</label>
+                    <a asp-page="/Events/Index" class="fab-action-btn bg-success" title="Post Score">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                </div>
+                <div class="fab-action-item">
+                    <label>Join Event</label>
+                    <a asp-page="/Events/Index" class="fab-action-btn bg-primary" title="Join Event">
+                        <i class="bi bi-calendar-plus"></i>
+                    </a>
+                </div>
+                <div class="fab-action-item">
+                    <label>Book Tee Time</label>
+                    <a asp-page="/TeeTime/Index" class="fab-action-btn bg-warning" title="Book Tee Time" style="color:#212529;">
+                        <i class="bi bi-clock"></i>
+                    </a>
+                </div>
+                <div class="fab-action-item">
+                    <label>Report Conditions</label>
+                    <a asp-page="/Club/Dashboard" class="fab-action-btn bg-info" title="Report Conditions" style="color:#212529;">
+                        <i class="bi bi-cloud-sun"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
 
     <footer class="footer py-4 bg-dark text-white mt-5">
         <div class="container">

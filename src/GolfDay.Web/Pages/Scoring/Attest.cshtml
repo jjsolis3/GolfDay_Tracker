@@ -44,10 +44,24 @@
             background: linear-gradient(135deg, #166534 0%, #15803d 60%, #22c55e 100%);
             color: white;
         }
+        .print-scorecard-header { display: none; }
     </style>
 }
 
 <div class="container py-4" style="max-width:860px;">
+
+    <!-- Print-only header -->
+    <div class="print-scorecard-header">
+        <h2 class="fw-bold">GolfDay Tracker — Official Scorecard</h2>
+        @if (Model.Round != null)
+        {
+            <p>Player: @(Model.Round.User?.FullName ?? "—") &nbsp;|&nbsp;
+               Course: @(Model.Round.Course?.Name ?? "—") &nbsp;|&nbsp;
+               Date: @Model.Round.CreatedAt.ToString("MMMM d, yyyy")
+               @if (Model.Round.IsAttested) { <text>&nbsp;|&nbsp; ✓ Attested</text> }
+            </p>
+        }
+    </div>
 
     @if (Model.Round == null)
     {
@@ -101,6 +115,10 @@
                         <i class="bi bi-clock me-1"></i>Awaiting Attestation
                     </span>
                 }
+                <button type="button" class="btn btn-outline-light btn-sm print-hide"
+                        onclick="window.print()" title="Print Scorecard">
+                    <i class="bi bi-printer me-1"></i>Print
+                </button>
             </div>
         </div>
 
