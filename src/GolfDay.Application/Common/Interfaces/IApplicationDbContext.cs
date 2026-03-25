@@ -23,6 +23,9 @@ public interface IApplicationDbContext
     DbSet<LeagueStanding> LeagueStandings { get; }
     DbSet<EventAchievement> EventAchievements { get; }
     DbSet<PlayerSeasonStats> PlayerSeasonStats { get; }
+    DbSet<Notification> Notifications { get; }
+    DbSet<TeeTimeSlot> TeeTimeSlots { get; }
+    DbSet<TeeTimeBooking> TeeTimeBookings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

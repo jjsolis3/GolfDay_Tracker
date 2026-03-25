@@ -27,6 +27,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<LeagueStanding> LeagueStandings => Set<LeagueStanding>();
     public DbSet<EventAchievement> EventAchievements => Set<EventAchievement>();
     public DbSet<PlayerSeasonStats> PlayerSeasonStats => Set<PlayerSeasonStats>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<TeeTimeSlot> TeeTimeSlots => Set<TeeTimeSlot>();
+    public DbSet<TeeTimeBooking> TeeTimeBookings => Set<TeeTimeBooking>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

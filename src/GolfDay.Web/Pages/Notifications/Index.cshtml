@@ -1,0 +1,180 @@
+@page
+@model GolfDay.Web.Pages.Notifications.IndexModel
+@using GolfDay.Domain.Enums
+@{
+    ViewData["Title"] = "Notifications";
+
+    var today     = DateTime.UtcNow.Date;
+    var yesterday = today.AddDays(-1);
+
+    var grouped = Model.Notifications
+        .GroupBy(n =>
+        {
+            var d = n.CreatedAt.Date;
+            if (d == today)     return "Today";
+            if (d == yesterday) return "Yesterday";
+            return "Earlier";
+        })
+        .OrderBy(g => g.Key == "Today" ? 0 : g.Key == "Yesterday" ? 1 : 2)
+        .ToList();
+
+    static (string iconClass, string colorClass) GetNotifIcon(NotificationType type) => type switch
+    {
+        NotificationType.JoinRequestApproved          => ("bi-person-check",  "text-success"),
+        NotificationType.JoinRequestRejected          => ("bi-person-x",      "text-danger"),
+        NotificationType.EventCreated                 => ("bi-calendar-event","text-primary"),
+        NotificationType.EventReminder                => ("bi-calendar-event","text-primary"),
+        NotificationType.EventCancelled               => ("bi-calendar-x",    "text-danger"),
+        NotificationType.EventResultPosted            => ("bi-bar-chart",     "text-primary"),
+        NotificationType.TeeTimeConfirmed             => ("bi-clock-fill",    "text-success"),
+        NotificationType.TeeTimeCancelled             => ("bi-clock",         "text-danger"),
+        NotificationType.TeeTimeReminder              => ("bi-clock",         "text-warning"),
+        NotificationType.ScoreAttestationRequested    => ("bi-patch-check",   "text-info"),
+        NotificationType.ScoreAttested                => ("bi-patch-check-fill","text-info"),
+        NotificationType.ScoreRejected                => ("bi-patch-exclamation","text-danger"),
+        NotificationType.ClubInvitation               => ("bi-envelope-paper","text-primary"),
+        NotificationType.LeagueMatchScheduled         => ("bi-people",        "text-success"),
+        NotificationType.TournamentRegistrationOpen   => ("bi-trophy",        "text-warning"),
+        NotificationType.General                      => ("bi-megaphone",     "text-secondary"),
+        _                                             => ("bi-bell",          "text-muted")
+    };
+
+    static string TimeAgo(DateTime utc)
+    {
+        var diff = DateTime.UtcNow - utc;
+        if (diff.TotalMinutes < 1)  return "Just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24)   return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays < 7)     return $"{(int)diff.TotalDays}d ago";
+        return utc.ToString("MMM d");
+    }
+}
+
+@section Styles {
+    <style>
+        .notif-card {
+            transition: background-color .15s ease;
+            border-left: 3px solid transparent;
+        }
+        .notif-card.unread {
+            border-left-color: #198754;
+            background-color: #f0faf4;
+        }
+        .notif-card:hover { background-color: #f8f9fa; }
+        .notif-icon-wrap {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            background: #f8f9fa;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .group-label {
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #6c757d;
+        }
+    </style>
+}
+
+<div class="container py-4" style="max-width:760px;">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="fw-bold mb-1">
+                <i class="bi bi-bell-fill me-2 text-success"></i>Notifications
+                @if (Model.UnreadCount > 0)
+                {
+                    <span class="badge bg-danger ms-1 fs-6">@Model.UnreadCount</span>
+                }
+            </h1>
+            <p class="text-muted mb-0">Your recent activity and alerts</p>
+        </div>
+        @if (Model.Notifications.Any())
+        {
+            <form method="post" asp-page-handler="ClearAll"
+                  onsubmit="return confirm('Clear all notifications?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash me-1"></i>Clear All
+                </button>
+            </form>
+        }
+    </div>
+
+    @if (!Model.Notifications.Any())
+    {
+        <!-- Empty state -->
+        <div class="text-center py-5 my-4">
+            <i class="bi bi-bell-slash display-1 text-muted opacity-50"></i>
+            <h4 class="mt-4 text-muted">You're all caught up!</h4>
+            <p class="text-muted mb-4">No notifications to show right now.</p>
+            <a asp-page="/Events/Index" class="btn btn-success">
+                <i class="bi bi-calendar-event me-2"></i>Browse Events
+            </a>
+        </div>
+    }
+    else
+    {
+        @foreach (var group in grouped)
+        {
+            <div class="mb-1">
+                <div class="group-label px-1 mb-2 mt-3">@group.Key</div>
+                <div class="card border-0 shadow-sm overflow-hidden">
+                    @foreach (var notif in group)
+                    {
+                        var (icon, color) = GetNotifIcon(notif.Type);
+                        var isUnread = !notif.IsRead;
+                        <div class="notif-card @(isUnread ? "unread" : "opacity-75") p-3 d-flex align-items-start gap-3 border-bottom">
+                            <!-- Icon -->
+                            <div class="notif-icon-wrap">
+                                <i class="bi @icon @color fs-5"></i>
+                            </div>
+
+                            <!-- Content -->
+                            <div class="flex-grow-1 min-width-0">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <p class="mb-0 fw-semibold @(isUnread ? "" : "text-muted")">
+                                            @if (isUnread)
+                                            {
+                                                <span class="badge bg-success rounded-pill me-1"
+                                                      style="font-size:.55rem;vertical-align:middle;">NEW</span>
+                                            }
+                                            @notif.Title
+                                        </p>
+                                        <p class="mb-1 text-muted small">@notif.Message</p>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock me-1"></i>@TimeAgo(notif.CreatedAt)
+                                        </small>
+                                    </div>
+                                    <div class="d-flex gap-1 flex-shrink-0">
+                                        @if (!string.IsNullOrEmpty(notif.ActionUrl))
+                                        {
+                                            <a href="@notif.ActionUrl" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-arrow-right me-1"></i>View
+                                            </a>
+                                        }
+                                        <form method="post" asp-page-handler="Delete"
+                                              asp-route-id="@notif.Id" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                    title="Delete notification">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <p class="text-center text-muted small mt-4">
+            Showing the most recent @Model.Notifications.Count notification(s).
+        </p>
+    }
+</div>
