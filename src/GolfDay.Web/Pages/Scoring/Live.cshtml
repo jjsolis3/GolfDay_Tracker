@@ -1,256 +1,609 @@
 @page "{eventId:int}"
 @model GolfDay.Web.Pages.Scoring.LiveModel
+@using GolfDay.Domain.Enums
 @{
-    ViewData["Title"] = $"Live Scoring — {Model.Event?.Name}";
+    ViewData["Title"] = Model.Event != null ? $"Live Scoring — {Model.Event.Name}" : "Live Scoring";
+    var ev = Model.Event;
+    var userRound = Model.UserRound;
+    var holes = Model.CourseHoles;
+    int outPar = 0;
+    int inPar = 0;
 }
 
-@if (Model.Event == null)
+@if (ev == null)
 {
     <div class="container py-5 text-center">
-        <h2>Event not found</h2>
-        <a asp-page="/Events/Index" class="btn btn-success mt-3">Back to Events</a>
+        <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
+        <h3 class="mt-3">Event Not Found or Not Active</h3>
+        <a asp-page="/Events/Index" class="btn btn-outline-success mt-3">Back to Events</a>
     </div>
     return;
 }
 
-<div class="container-fluid py-3">
-    <!-- Header Bar -->
-    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
-        <div>
-            <h4 class="mb-0 fw-bold">
-                <span class="badge bg-danger badge-live me-2">LIVE</span>
-                @Model.Event.Name
-            </h4>
-            <small class="text-muted">
-                <i class="bi bi-geo-alt me-1"></i>@Model.Event.Course?.Name •
-                <i class="bi bi-calendar me-1 ms-1"></i>@Model.Event.EventDate.ToString("MMM d, yyyy")
-            </small>
+@section Styles {
+    <style>
+        body { background: #f0f4f0; }
+        .live-header {
+            background: linear-gradient(135deg, #6b0000 0%, #b71c1c 55%, #e53935 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+        }
+        .panel-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 14px rgba(0,0,0,.09);
+            overflow: hidden;
+        }
+        .panel-card .card-header {
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            padding: .75rem 1rem;
+        }
+        /* ── Leaderboard ── */
+        .lb-table th {
+            font-size: .75rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: #6c757d;
+            padding: .5rem .6rem;
+        }
+        .lb-table td { vertical-align: middle; padding: .45rem .6rem; }
+        .pos-badge {
+            width: 26px; height: 26px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: .75rem; font-weight: 700;
+        }
+        .pos-1 { background: #FFD700; color: #333; }
+        .pos-2 { background: #C0C0C0; color: #444; }
+        .pos-3 { background: #CD7F32; color: #fff; }
+        .pos-n { background: #e9ecef; color: #666; }
+        .score-under { color: #c0392b; font-weight: 700; }
+        .score-over  { color: #1565c0; }
+        .score-even  { color: #1b5e20; font-weight: 600; }
+        .updated-flash { animation: flashrow .7s ease; }
+        @@keyframes flashrow { 0%,100%{background:inherit} 50%{background:#fffde7} }
+        /* ── Connection indicator ── */
+        .conn-dot {
+            width: 9px; height: 9px; border-radius: 50%;
+            display: inline-block; vertical-align: middle;
+        }
+        .conn-connected    { background: #27ae60; }
+        .conn-connecting   { background: #f39c12; animation: blink 1s infinite; }
+        .conn-disconnected { background: #e74c3c; }
+        @@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+        /* ── Scorecard ── */
+        .scorecard-wrap .section-head th {
+            background: #2d6a4f; color: white;
+            font-size: .72rem; text-align: center;
+            padding: .35rem .25rem;
+            white-space: nowrap;
+        }
+        .scorecard-wrap .section-head th:first-child {
+            text-align: left; padding-left: .5rem; min-width: 52px;
+        }
+        .scorecard-wrap .par-row td {
+            background: #e8f5e9; font-size: .78rem;
+            color: #2d6a4f; font-weight: 600;
+            text-align: center; padding: .3rem .2rem;
+        }
+        .scorecard-wrap .par-row td:first-child { text-align: left; padding-left: .5rem; }
+        .scorecard-wrap .score-row td { text-align: center; padding: .25rem .2rem; }
+        .scorecard-wrap .score-row td:first-child { text-align: left; padding-left: .5rem; font-size: .78rem; color: #6c757d; }
+        .hole-in {
+            width: 44px; height: 34px;
+            text-align: center; font-weight: 700; font-size: .95rem;
+            border-radius: 6px; border: 2px solid #dee2e6;
+            transition: border-color .15s, background .15s;
+            -moz-appearance: textfield;
+        }
+        .hole-in::-webkit-inner-spin-button,
+        .hole-in::-webkit-outer-spin-button { -webkit-appearance: none; }
+        .hole-in:focus { border-color: #2d6a4f; outline: none; box-shadow: 0 0 0 3px rgba(45,106,79,.15); }
+        .hole-in.s-eagle        { background: #FFF9C4; border-color: #F9A825; }
+        .hole-in.s-birdie       { background: #FFF3E0; border-color: #FB8C00; }
+        .hole-in.s-par          { background: #E8F5E9; border-color: #43A047; }
+        .hole-in.s-bogey        { background: #FFEBEE; border-color: #E53935; }
+        .hole-in.s-doublebogey  { background: #FCE4EC; border-color: #AD1457; }
+        .total-cell { font-weight: 700; background: #e8f5e9 !important; }
+        /* Running totals strip */
+        .running-strip {
+            background: #2d6a4f; color: white;
+            border-radius: 8px; padding: .6rem 1rem;
+            display: flex; gap: 1.5rem; justify-content: center; align-items: center;
+            flex-wrap: wrap;
+        }
+        .running-strip .item { text-align: center; }
+        .running-strip .value { font-size: 1.4rem; font-weight: 700; line-height: 1; }
+        .running-strip .label { font-size: .7rem; opacity: .8; margin-top: 2px; }
+        .running-strip .item.stp-under .value { color: #FFCA28; }
+        .running-strip .item.stp-over  .value { color: #ef9a9a; }
+        .animate-pulse { animation: pulse 1.5s ease-in-out infinite; }
+        @@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    </style>
+}
+
+<!-- Live Header Bar -->
+<div class="live-header">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-white text-danger fw-bold px-3 py-2 animate-pulse">
+                <i class="bi bi-broadcast me-1"></i>LIVE
+            </span>
+            <div>
+                <h5 class="mb-0 fw-bold">@ev.Name</h5>
+                <small class="text-white-50">
+                    @ev.Club.Name
+                    @if (ev.Course != null) { <span class="mx-1">·</span><span>@ev.Course.Name (Par @ev.Course.ParTotal)</span> }
+                    @if (!string.IsNullOrEmpty(ev.Format)) { <span class="mx-1">·</span><span>@ev.Format</span> }
+                    <span class="mx-1">·</span>
+                    <span>@ev.EventDate.ToString("MMM d, yyyy")</span>
+                </small>
+            </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <span id="connection-status" class="badge bg-secondary">Connecting...</span>
-            <a asp-page="/Events/Details" asp-route-id="@Model.Event.Id" class="btn btn-sm btn-outline-secondary">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2 text-white-75 small">
+                <span class="conn-dot conn-connecting" id="conn-dot"></span>
+                <span id="conn-label">Connecting…</span>
+            </div>
+            <a asp-page="/Events/Details" asp-route-id="@ev.Id" class="btn btn-outline-light btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>Event
             </a>
         </div>
     </div>
+</div>
 
-    <div class="row g-3">
-        <!-- Leaderboard (left/top) -->
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-success text-white fw-bold">
-                    <i class="bi bi-list-ol me-2"></i>Live Leaderboard
-                    <span class="float-end small opacity-75">@Model.Leaderboard.Count players</span>
+<div class="container-fluid px-3 py-3">
+    <div class="row g-3 align-items-start">
+
+        <!-- ══ LEFT: Leaderboard ══════════════════════════════════════════════ -->
+        <div class="col-lg-5 col-xl-4">
+            <div class="panel-card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold small">
+                        <i class="bi bi-list-ol me-2 text-success"></i>Leaderboard
+                    </span>
+                    <span class="text-muted small" id="lb-updated">—</span>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 leaderboard-table">
-                        <thead class="table-light">
+                <div style="max-height: calc(100vh - 165px); overflow-y: auto;">
+                    <table class="table lb-table mb-0">
+                        <thead class="sticky-top bg-white">
                             <tr>
-                                <th style="width:40px">#</th>
+                                <th class="ps-3" style="width:42px">#</th>
                                 <th>Player</th>
                                 <th class="text-center" style="width:50px">Thru</th>
-                                <th class="text-center" style="width:60px">Score</th>
-                                <th class="text-center" style="width:60px">+/-</th>
+                                <th class="text-center" style="width:54px">Score</th>
+                                <th class="text-center" style="width:52px">+/-</th>
                             </tr>
                         </thead>
                         <tbody id="leaderboard-body">
-                            @{int rank = 1;}
+                            @{ int rank = 1; }
                             @foreach (var entry in Model.Leaderboard)
                             {
-                                var parTotal = Model.Event.Course?.ParTotal ?? 72;
+                                var parTotal = ev.Course?.ParTotal ?? 72;
                                 var toPar = (entry.GrossScore ?? 0) - parTotal;
-                                <tr id="leaderboard-row-@entry.RoundId" class="@(rank <= 3 ? $"position-{rank}" : "")">
-                                    <td>
-                                        <span class="rank-badge @(rank == 1 ? "rank-1" : rank == 2 ? "rank-2" : rank == 3 ? "rank-3" : "bg-light text-dark") col-rank">@rank</span>
+                                var stpStr = !entry.GrossScore.HasValue || entry.HolesCompleted == 0 ? "-"
+                                            : toPar == 0 ? "E" : toPar > 0 ? $"+{toPar}" : toPar.ToString();
+                                var stpClass = !entry.GrossScore.HasValue || entry.HolesCompleted == 0 ? ""
+                                             : toPar < 0 ? "score-under" : toPar > 0 ? "score-over" : "score-even";
+                                var posClass = rank == 1 ? "pos-1" : rank == 2 ? "pos-2" : rank == 3 ? "pos-3" : "pos-n";
+                                <tr data-round-id="@entry.RoundId">
+                                    <td class="ps-3">
+                                        <span class="pos-badge @posClass">@rank</span>
                                     </td>
                                     <td>
-                                        <span class="fw-semibold">@entry.PlayerName</span>
+                                        <div class="fw-medium small">@entry.PlayerName</div>
                                         @if (!string.IsNullOrEmpty(entry.HandicapStr))
                                         {
-                                            <small class="text-muted ms-1">(@entry.HandicapStr)</small>
+                                            <div class="text-muted" style="font-size:.7rem">HCP @entry.HandicapStr</div>
                                         }
-                                    </td>
-                                    <td class="text-center col-thru">@(entry.HolesCompleted > 0 ? entry.HolesCompleted.ToString() : "-")</td>
-                                    <td class="text-center fw-bold col-score">@(entry.GrossScore.HasValue ? entry.GrossScore.Value.ToString() : "-")</td>
-                                    <td class="text-center">
-                                        @if (entry.GrossScore.HasValue && entry.HolesCompleted > 0)
+                                        @if (entry.Status == RoundStatus.InProgress)
                                         {
-                                            <span class="@(toPar < 0 ? "score-eagle-text" : toPar == 0 ? "score-par-text" : "score-bogey-text") fw-bold">
-                                                @(toPar == 0 ? "E" : (toPar > 0 ? $"+{toPar}" : toPar.ToString()))
-                                            </span>
+                                            <span class="badge bg-success" style="font-size:.65rem">Scoring</span>
                                         }
-                                        else { <span class="text-muted">-</span> }
                                     </td>
+                                    <td class="text-center small col-thru">
+                                        @(entry.HolesCompleted == 18 ? "F" : entry.HolesCompleted == 0 ? "—" : entry.HolesCompleted.ToString())
+                                    </td>
+                                    <td class="text-center fw-semibold small col-score">
+                                        @(entry.GrossScore.HasValue ? entry.GrossScore.Value.ToString() : "—")
+                                    </td>
+                                    <td class="text-center small @stpClass col-stp">@stpStr</td>
                                 </tr>
                                 rank++;
                             }
                         </tbody>
                     </table>
+                    @if (!Model.Leaderboard.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-hourglass-split fs-2 mb-2 d-block"></i>
+                            <span class="small">Waiting for scores…</span>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
 
-        <!-- Scorecard (right/bottom) - only shown to authenticated participants -->
-        @if (User.Identity?.IsAuthenticated == true && Model.UserRound != null)
-        {
-            <div class="col-lg-7">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                        <span class="fw-bold"><i class="bi bi-clipboard me-2"></i>My Scorecard</span>
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="text-center">
-                                <div class="small opacity-75">Score</div>
-                                <div class="fw-bold fs-5" id="score-total">-</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="small opacity-75">To Par</div>
-                                <div class="fw-bold fs-5 text-warning" id="score-to-par">-</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="small opacity-75">Thru</div>
-                                <div class="fw-bold fs-5" id="score-thru">0</div>
-                            </div>
-                        </div>
+        <!-- ══ RIGHT: Scorecard Entry ═════════════════════════════════════════ -->
+        <div class="col-lg-7 col-xl-8">
+            @if (!User.Identity!.IsAuthenticated)
+            {
+                <div class="panel-card p-5 text-center">
+                    <i class="bi bi-person-lock fs-1 text-muted d-block mb-3"></i>
+                    <h5>Sign In to Score</h5>
+                    <p class="text-muted small">You must be signed in to enter scores for this event.</p>
+                    <a asp-page="/Account/Login" class="btn btn-success">Sign In</a>
+                </div>
+            }
+            else if (userRound == null)
+            {
+                <div class="panel-card p-5 text-center">
+                    <i class="bi bi-clipboard-x fs-1 text-muted d-block mb-3"></i>
+                    <h5>No Round Assigned</h5>
+                    <p class="text-muted small">You don't have a round for this event. Contact the organizer to be added.</p>
+                </div>
+            }
+            else
+            {
+                <!-- Running Totals Strip -->
+                <div class="running-strip mb-3" id="running-strip">
+                    @{
+                        var initialGross = userRound.GrossScore;
+                        var initialPar = ev.Course?.ParTotal ?? 72;
+                        var initialStp = initialGross.HasValue ? initialGross.Value - initialPar : (int?)null;
+                        var initialThru = userRound.HoleScores.Count;
+                        var stpClass2 = initialStp.HasValue ? (initialStp < 0 ? "stp-under" : initialStp > 0 ? "stp-over" : "") : "";
+                    }
+                    <div class="item">
+                        <div class="value" id="disp-gross">@(initialGross?.ToString() ?? "—")</div>
+                        <div class="label">Gross Score</div>
                     </div>
-                    <div class="card-body p-2">
+                    <div class="vr opacity-25"></div>
+                    <div class="item @stpClass2" id="disp-stp-item">
+                        <div class="value" id="disp-stp">
+                            @(initialStp.HasValue ? (initialStp == 0 ? "E" : initialStp > 0 ? $"+{initialStp}" : initialStp.ToString()) : "—")
+                        </div>
+                        <div class="label">To Par</div>
+                    </div>
+                    <div class="vr opacity-25"></div>
+                    <div class="item">
+                        <div class="value" id="disp-thru">@(initialThru == 18 ? "F" : initialThru == 0 ? "—" : initialThru.ToString())</div>
+                        <div class="label">Thru</div>
+                    </div>
+                    @if (userRound.HandicapUsed.HasValue)
+                    {
+                        <div class="vr opacity-25"></div>
+                        <div class="item">
+                            <div class="value">@userRound.HandicapUsed.Value.ToString("F1")</div>
+                            <div class="label">Handicap</div>
+                        </div>
+                    }
+                </div>
+
+                <div class="panel-card">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <span class="fw-semibold small">
+                            <i class="bi bi-pencil-square me-2 text-success"></i>My Scorecard
+                        </span>
+                        <button id="btn-complete" class="btn btn-success btn-sm px-3"
+                                data-round-id="@userRound.Id"
+                                @(userRound.Status == RoundStatus.Completed ? "disabled" : "")>
+                            <i class="bi bi-check-circle me-1"></i>
+                            @(userRound.Status == RoundStatus.Completed ? "Round Completed" : "Complete Round")
+                        </button>
+                    </div>
+
+                    <div class="card-body p-2 scorecard-wrap">
                         <div class="table-responsive">
-                            <table class="table table-sm table-bordered scorecard-table mb-2">
+                            <table class="table table-bordered mb-0" style="min-width:640px">
+                                <!-- ── Front 9 ── -->
                                 <thead>
-                                    <tr>
-                                        <th class="hole-header" style="width:60px">Hole</th>
-                                        @for (int h = 1; h <= 9; h++)
-                                        {
-                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
-                                            <th class="hole-header text-center" style="min-width:42px">
-                                                <span class="par-circle par-@(hole?.Par ?? 4) d-inline-flex">@h</span>
-                                            </th>
-                                        }
-                                        <th class="hole-header text-center bg-success bg-opacity-75">OUT</th>
+                                    <tr class="section-head">
+                                        <th>Hole</th>
+                                        @for (int h = 1; h <= 9; h++) { <th>@h</th> }
+                                        <th>OUT</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td class="par-row fw-bold">Par</td>
-                                        @{int outPar = 0;}
+                                    <tr class="par-row">
+                                        <td>Par</td>
                                         @for (int h = 1; h <= 9; h++)
                                         {
-                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
-                                            var par = hole?.Par ?? 4;
-                                            outPar += par;
-                                            <td class="par-row text-center">@par</td>
+                                            var hi = holes.FirstOrDefault(x => x.HoleNumber == h);
+                                            var p = hi?.Par ?? 4;
+                                            outPar += p;
+                                            <td data-hole="@h" data-par="@p">@p</td>
                                         }
-                                        <td class="par-row text-center fw-bold">@outPar</td>
+                                        <td class="total-cell">@outPar</td>
                                     </tr>
-                                    <tr>
-                                        <td class="fw-bold small text-muted">Score</td>
-                                        @{int outScore = 0;}
+                                    <tr class="score-row">
+                                        <td>Score</td>
+                                        @{ int outScore = 0; }
                                         @for (int h = 1; h <= 9; h++)
                                         {
-                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
-                                            var existingScore = Model.HoleScores.FirstOrDefault(s => s.HoleNumber == h);
-                                            <td class="score-input-cell">
-                                                <input type="number" min="1" max="15"
-                                                       class="hole-score-input"
+                                            var hi = holes.FirstOrDefault(x => x.HoleNumber == h);
+                                            var p = hi?.Par ?? 4;
+                                            var hs = Model.HoleScores.FirstOrDefault(s => s.HoleNumber == h);
+                                            var st = hs?.Strokes ?? 0;
+                                            if (st > 0) outScore += st;
+                                            var diff = st > 0 ? st - p : 0;
+                                            var sc = st == 0 ? "" : diff <= -2 ? "s-eagle" : diff == -1 ? "s-birdie" : diff == 0 ? "s-par" : diff == 1 ? "s-bogey" : "s-doublebogey";
+                                            <td>
+                                                <input type="number" min="1" max="20"
+                                                       id="hole-@h"
+                                                       class="hole-in @sc"
                                                        data-hole="@h"
-                                                       data-par="@(hole?.Par ?? 4)"
-                                                       value="@existingScore?.Strokes"
-                                                       onchange="onHoleScoreChange(this, @Model.UserRound.Id)"
-                                                       oninput="onHoleScoreChange(this, @Model.UserRound.Id)" />
+                                                       data-par="@p"
+                                                       data-round-id="@userRound.Id"
+                                                       value="@(st > 0 ? st.ToString() : "")"
+                                                       placeholder="@p"
+                                                       @(userRound.Status == RoundStatus.Completed ? "readonly" : "") />
                                             </td>
                                         }
-                                        <td class="text-center fw-bold" id="out-score">-</td>
+                                        <td class="total-cell" id="out-total">@(outScore > 0 ? outScore.ToString() : "—")</td>
                                     </tr>
                                 </tbody>
-                            </table>
 
-                            <!-- Back 9 -->
-                            <table class="table table-sm table-bordered scorecard-table mb-0">
+                                <!-- ── Back 9 ── -->
                                 <thead>
-                                    <tr>
-                                        <th class="hole-header" style="width:60px">Hole</th>
-                                        @for (int h = 10; h <= 18; h++)
-                                        {
-                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
-                                            <th class="hole-header text-center" style="min-width:42px">
-                                                <span class="par-circle par-@(hole?.Par ?? 4) d-inline-flex">@h</span>
-                                            </th>
-                                        }
-                                        <th class="hole-header text-center bg-success bg-opacity-75">IN</th>
-                                        <th class="hole-header text-center bg-success">TOT</th>
+                                    <tr class="section-head">
+                                        <th>Hole</th>
+                                        @for (int h = 10; h <= 18; h++) { <th>@h</th> }
+                                        <th>IN</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td class="par-row fw-bold">Par</td>
-                                        @{int inPar = 0;}
+                                    <tr class="par-row">
+                                        <td>Par</td>
                                         @for (int h = 10; h <= 18; h++)
                                         {
-                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
-                                            var par = hole?.Par ?? 4;
-                                            inPar += par;
-                                            <td class="par-row text-center">@par</td>
+                                            var hi = holes.FirstOrDefault(x => x.HoleNumber == h);
+                                            var p = hi?.Par ?? 4;
+                                            inPar += p;
+                                            <td data-hole="@h" data-par="@p">@p</td>
                                         }
-                                        <td class="par-row text-center fw-bold">@inPar</td>
-                                        <td class="par-row text-center fw-bold">@(outPar + inPar)</td>
+                                        <td class="total-cell">@inPar</td>
                                     </tr>
-                                    <tr>
-                                        <td class="fw-bold small text-muted">Score</td>
+                                    <tr class="score-row">
+                                        <td>Score</td>
+                                        @{ int inScore = 0; }
                                         @for (int h = 10; h <= 18; h++)
                                         {
-                                            var hole = Model.CourseHoles.FirstOrDefault(ch => ch.HoleNumber == h);
-                                            var existingScore = Model.HoleScores.FirstOrDefault(s => s.HoleNumber == h);
-                                            <td class="score-input-cell">
-                                                <input type="number" min="1" max="15"
-                                                       class="hole-score-input"
+                                            var hi = holes.FirstOrDefault(x => x.HoleNumber == h);
+                                            var p = hi?.Par ?? 4;
+                                            var hs = Model.HoleScores.FirstOrDefault(s => s.HoleNumber == h);
+                                            var st = hs?.Strokes ?? 0;
+                                            if (st > 0) inScore += st;
+                                            var diff = st > 0 ? st - p : 0;
+                                            var sc = st == 0 ? "" : diff <= -2 ? "s-eagle" : diff == -1 ? "s-birdie" : diff == 0 ? "s-par" : diff == 1 ? "s-bogey" : "s-doublebogey";
+                                            <td>
+                                                <input type="number" min="1" max="20"
+                                                       id="hole-@h"
+                                                       class="hole-in @sc"
                                                        data-hole="@h"
-                                                       data-par="@(hole?.Par ?? 4)"
-                                                       value="@existingScore?.Strokes"
-                                                       onchange="onHoleScoreChange(this, @Model.UserRound.Id)"
-                                                       oninput="onHoleScoreChange(this, @Model.UserRound.Id)" />
+                                                       data-par="@p"
+                                                       data-round-id="@userRound.Id"
+                                                       value="@(st > 0 ? st.ToString() : "")"
+                                                       placeholder="@p"
+                                                       @(userRound.Status == RoundStatus.Completed ? "readonly" : "") />
                                             </td>
                                         }
-                                        <td class="text-center fw-bold" id="in-score">-</td>
-                                        <td class="text-center fw-bold" id="total-score">-</td>
+                                        <td class="total-cell" id="in-total">@(inScore > 0 ? inScore.ToString() : "—")</td>
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
-
-                        <div class="text-end mt-2">
-                            <button id="complete-round-btn" onclick="completeRound(@Model.UserRound.Id)"
-                                    class="btn btn-success px-4"
-                                    @(Model.UserRound.Status == GolfDay.Domain.Enums.RoundStatus.Completed ? "disabled" : "")>
-                                <i class="bi bi-check-circle me-2"></i>
-                                @(Model.UserRound.Status == GolfDay.Domain.Enums.RoundStatus.Completed ? "Round Completed" : "Complete Round")
-                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        }
-        else if (User.Identity?.IsAuthenticated == false)
-        {
-            <div class="col-lg-7">
-                <div class="card border-0 shadow-sm text-center p-5">
-                    <i class="bi bi-person-lock fs-1 text-muted mb-3"></i>
-                    <h5>Sign in to enter your scores</h5>
-                    <a asp-page="/Account/Login" class="btn btn-success mt-2">Sign In</a>
-                </div>
-            </div>
-        }
+            }
+        </div>
     </div>
 </div>
 
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-    <script src="~/js/scoring.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"
+            integrity="sha512-4AYFqtaG3cOwGzmKMSQkl/QO1L0JYbMDHE3FtZKjknk2bOXQkpKSRBWIKZG6x2HEmMlHAcAbWGTLsY5QNZgHQ=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
-        // Initialize live scoring
-        document.addEventListener('DOMContentLoaded', function () {
-            const eventId = @Model.Event.Id;
-            const roundId = @(Model.UserRound?.Id.ToString() ?? "null");
-            initScoringHub(eventId, roundId);
-            updateRunningTotal();
+    (function () {
+        'use strict';
+
+        const EVENT_ID    = @(ev.Id);
+        const ROUND_ID    = @(userRound?.Id.ToString() ?? "null");
+        const COURSE_PAR  = @(ev.Course?.ParTotal ?? 72);
+
+        // ── SignalR ──────────────────────────────────────────────────────────
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl('/hubs/scoring')
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
+            .build();
+
+        const dot   = document.getElementById('conn-dot');
+        const label = document.getElementById('conn-label');
+
+        function setConn(state) {
+            dot.className   = 'conn-dot conn-' + state;
+            label.textContent = { connected:'Connected', connecting:'Connecting…', disconnected:'Disconnected' }[state] ?? state;
+        }
+
+        connection.onreconnecting(() => setConn('connecting'));
+        connection.onreconnected(() => {
+            setConn('connected');
+            connection.invoke('JoinEventGroup', EVENT_ID).catch(console.error);
         });
+        connection.onclose(() => setConn('disconnected'));
+
+        connection.start()
+            .then(() => {
+                setConn('connected');
+                return connection.invoke('JoinEventGroup', EVENT_ID);
+            })
+            .catch(err => { setConn('disconnected'); console.error('Hub start error:', err); });
+
+        // ── ScoreUpdated ─────────────────────────────────────────────────────
+        connection.on('ScoreUpdated', function (data) {
+            applyLeaderboardUpdate(data);
+            const el = document.getElementById('lb-updated');
+            if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString();
+        });
+
+        connection.on('RoundCompleted', function (data) {
+            const row = document.querySelector(`#leaderboard-body tr[data-round-id="${data.roundId}"]`);
+            if (!row) return;
+            const thruCell = row.querySelector('.col-thru');
+            if (thruCell) thruCell.textContent = 'F';
+        });
+
+        function applyLeaderboardUpdate(data) {
+            const tbody = document.getElementById('leaderboard-body');
+            if (!tbody) return;
+
+            let row = tbody.querySelector(`tr[data-round-id="${data.roundId}"]`);
+            if (!row) {
+                row = document.createElement('tr');
+                row.dataset.roundId = data.roundId;
+                row.innerHTML =
+                    `<td class="ps-3"><span class="pos-badge pos-n">-</span></td>` +
+                    `<td><div class="fw-medium small">${esc(data.playerName)}</div>` +
+                    `<span class="badge bg-success" style="font-size:.65rem">Scoring</span></td>` +
+                    `<td class="text-center small col-thru">-</td>` +
+                    `<td class="text-center fw-semibold small col-score">-</td>` +
+                    `<td class="text-center small col-stp">-</td>`;
+                tbody.appendChild(row);
+            }
+
+            const scoreCell = row.querySelector('.col-score');
+            const thruCell  = row.querySelector('.col-thru');
+            const stpCell   = row.querySelector('.col-stp');
+
+            if (data.grossTotal != null && scoreCell) scoreCell.textContent = data.grossTotal;
+            if (thruCell) thruCell.textContent = data.holesCompleted === 18 ? 'F' : (data.holesCompleted || '—');
+            if (stpCell && data.grossTotal != null) {
+                const stp = data.grossTotal - COURSE_PAR;
+                stpCell.textContent = stp === 0 ? 'E' : stp > 0 ? '+' + stp : String(stp);
+                stpCell.className   = 'text-center small col-stp ' + (stp < 0 ? 'score-under' : stp > 0 ? 'score-over' : 'score-even');
+            }
+
+            row.classList.add('updated-flash');
+            setTimeout(() => row.classList.remove('updated-flash'), 800);
+            rebuildRanks();
+        }
+
+        function rebuildRanks() {
+            const tbody = document.getElementById('leaderboard-body');
+            if (!tbody) return;
+            const rows = [...tbody.querySelectorAll('tr')];
+            rows.sort((a, b) => {
+                const aScore = parseInt(a.querySelector('.col-score')?.textContent) || 9999;
+                const bScore = parseInt(b.querySelector('.col-score')?.textContent) || 9999;
+                const aThru  = a.querySelector('.col-thru')?.textContent === 'F' ? 18 : parseInt(a.querySelector('.col-thru')?.textContent) || 0;
+                const bThru  = b.querySelector('.col-thru')?.textContent === 'F' ? 18 : parseInt(b.querySelector('.col-thru')?.textContent) || 0;
+                return aScore !== bScore ? aScore - bScore : bThru - aThru;
+            });
+            rows.forEach((row, i) => {
+                tbody.appendChild(row);
+                const badge = row.querySelector('.pos-badge');
+                if (badge) {
+                    badge.textContent = i + 1;
+                    badge.className = 'pos-badge ' + (i === 0 ? 'pos-1' : i === 1 ? 'pos-2' : i === 2 ? 'pos-3' : 'pos-n');
+                }
+            });
+        }
+
+        // ── Scorecard Input ──────────────────────────────────────────────────
+        if (ROUND_ID !== null) {
+            const timers = {};
+
+            function styleScore(input) {
+                const st  = parseInt(input.value) || 0;
+                const par = parseInt(input.dataset.par) || 4;
+                if (st < 1) { input.className = 'hole-in'; return; }
+                const d = st - par;
+                input.className = 'hole-in ' + (d <= -2 ? 's-eagle' : d === -1 ? 's-birdie' : d === 0 ? 's-par' : d === 1 ? 's-bogey' : 's-doublebogey');
+            }
+
+            function refreshTotals() {
+                let out = 0, inn = 0, outFilled = 0, inFilled = 0;
+                for (let h = 1; h <= 18; h++) {
+                    const inp = document.getElementById('hole-' + h);
+                    if (!inp) continue;
+                    const val = parseInt(inp.value) || 0;
+                    if (val > 0) { if (h <= 9) { out += val; outFilled++; } else { inn += val; inFilled++; } }
+                }
+                const total = out + inn;
+                const filled = outFilled + inFilled;
+
+                const outEl  = document.getElementById('out-total');
+                const inEl   = document.getElementById('in-total');
+                const grossEl = document.getElementById('disp-gross');
+                const stpEl  = document.getElementById('disp-stp');
+                const stpItem = document.getElementById('disp-stp-item');
+                const thruEl = document.getElementById('disp-thru');
+
+                if (outEl)  outEl.textContent  = out  > 0 ? out  : '—';
+                if (inEl)   inEl.textContent   = inn  > 0 ? inn  : '—';
+                if (grossEl) grossEl.textContent = total > 0 ? total : '—';
+                if (thruEl) thruEl.textContent = filled === 0 ? '—' : filled === 18 ? 'F' : String(filled);
+
+                if (stpEl && total > 0) {
+                    const stp = total - COURSE_PAR;
+                    stpEl.textContent = stp === 0 ? 'E' : stp > 0 ? '+' + stp : String(stp);
+                    if (stpItem) stpItem.className = 'item ' + (stp < 0 ? 'stp-under' : stp > 0 ? 'stp-over' : '');
+                } else if (stpEl) {
+                    stpEl.textContent = '—';
+                }
+            }
+
+            document.querySelectorAll('.hole-in').forEach(inp => {
+                inp.addEventListener('input', function () {
+                    styleScore(this);
+                    refreshTotals();
+                });
+
+                inp.addEventListener('change', function () {
+                    styleScore(this);
+                    refreshTotals();
+
+                    const hole    = parseInt(this.dataset.hole);
+                    const strokes = parseInt(this.value);
+                    const rid     = parseInt(this.dataset.roundId);
+                    if (!strokes || strokes < 1 || strokes > 20) return;
+
+                    clearTimeout(timers[hole]);
+                    timers[hole] = setTimeout(() => {
+                        if (connection.state === signalR.HubConnectionState.Connected) {
+                            connection.invoke('PostHoleScore', rid, hole, strokes, null, null, null)
+                                .catch(err => console.error('PostHoleScore error:', err));
+                        }
+                    }, 500);
+                });
+
+                // Allow clicking to select all text for easy re-entry
+                inp.addEventListener('focus', function () { this.select(); });
+            });
+
+            // Complete Round button
+            const btnComplete = document.getElementById('btn-complete');
+            if (btnComplete && !btnComplete.disabled) {
+                btnComplete.addEventListener('click', function () {
+                    if (!confirm('Mark your round as complete? Scores will be locked.')) return;
+                    const rid = parseInt(this.dataset.roundId);
+                    if (connection.state === signalR.HubConnectionState.Connected) {
+                        connection.invoke('CompleteRound', rid)
+                            .then(() => {
+                                btnComplete.disabled = true;
+                                btnComplete.innerHTML = '<i class="bi bi-check-circle me-1"></i>Round Completed';
+                                document.querySelectorAll('.hole-in').forEach(i => { i.readOnly = true; });
+                            })
+                            .catch(err => console.error('CompleteRound error:', err));
+                    }
+                });
+            }
+        }
+
+        function esc(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+    })();
     </script>
 }

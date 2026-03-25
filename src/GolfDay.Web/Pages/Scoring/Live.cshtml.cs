@@ -1,7 +1,6 @@
 using GolfDay.Application.Common.Interfaces;
 using GolfDay.Domain.Entities;
 using GolfDay.Domain.Enums;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -40,9 +39,10 @@ public class LiveModel : PageModel
             .Include(e => e.Club)
             .FirstOrDefaultAsync(e => e.Id == eventId);
 
-        if (Event == null) return Page();
+        if (Event == null)
+            return Page();
 
-        // Load course holes
+        // Load course holes for scorecard par display
         if (Event.CourseId.HasValue)
         {
             CourseHoles = await _db.CourseHoles
@@ -51,9 +51,9 @@ public class LiveModel : PageModel
                 .ToListAsync();
         }
 
-        // Load current user's round
+        // Load the current user's round and hole scores
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId != null)
+        if (!string.IsNullOrEmpty(userId))
         {
             UserRound = await _db.Rounds
                 .FirstOrDefaultAsync(r => r.EventId == eventId && r.UserId == userId);
@@ -67,27 +67,30 @@ public class LiveModel : PageModel
             }
         }
 
-        // Build leaderboard from all rounds for this event
+        // Build leaderboard sorted by gross score ascending
         var rounds = await _db.Rounds
             .Include(r => r.User)
             .Include(r => r.HoleScores)
-            .Where(r => r.EventId == eventId && r.Status != RoundStatus.Withdrawn)
+            .Where(r => r.EventId == eventId
+                     && r.Status != RoundStatus.Withdrawn
+                     && r.Status != RoundStatus.Disqualified)
             .ToListAsync();
 
-        Leaderboard = rounds.Select(r => new LeaderboardEntry
-        {
-            RoundId = r.Id,
-            PlayerId = r.UserId,
-            PlayerName = r.User.FullName,
-            HandicapStr = r.User.HandicapIndex.HasValue ? r.User.HandicapIndex.Value.ToString("F1") : null,
-            GrossScore = r.GrossScore,
-            NetScore = r.NetScore,
-            HolesCompleted = r.HoleScores.Count,
-            Status = r.Status
-        })
-        .OrderBy(e => e.GrossScore ?? 999)
-        .ThenByDescending(e => e.HolesCompleted)
-        .ToList();
+        Leaderboard = rounds
+            .Select(r => new LeaderboardEntry
+            {
+                RoundId        = r.Id,
+                PlayerId       = r.UserId,
+                PlayerName     = r.User.FullName,
+                HandicapStr    = r.User.HandicapIndex.HasValue ? r.User.HandicapIndex.Value.ToString("F1") : null,
+                GrossScore     = r.GrossScore,
+                NetScore       = r.NetScore,
+                HolesCompleted = r.HoleScores.Count,
+                Status         = r.Status
+            })
+            .OrderBy(e => e.GrossScore ?? int.MaxValue)
+            .ThenByDescending(e => e.HolesCompleted)
+            .ToList();
 
         return Page();
     }

@@ -2,86 +2,293 @@
 @model GolfDay.Web.Pages.Club.LeaderboardModel
 @{
     ViewData["Title"] = "Season Leaderboard";
+    var currentClub = Model.Clubs.FirstOrDefault(c => c.Id == Model.SelectedClubId);
 }
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-0"><i class="bi bi-bar-chart me-2 text-success"></i>Season Leaderboard</h2>
-        <div class="d-flex gap-2">
-            @if (Model.Clubs.Count > 1)
-            {
-                <select class="form-select form-select-sm w-auto" onchange="window.location='?clubId='+this.value+'&year=@Model.SelectedYear'">
-                    @foreach (var club in Model.Clubs)
+@section Styles {
+    <style>
+        .lb-hero {
+            background: linear-gradient(135deg, #1a3c2e 0%, #2d6a4f 50%, #52b788 100%);
+            color: white;
+            padding: 1.75rem 0;
+        }
+        .pos-badge {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: .85rem;
+        }
+        .pos-1 { background: #FFD700; color: #333; }
+        .pos-2 { background: #C0C0C0; color: #444; }
+        .pos-3 { background: #CD7F32; color: #fff; }
+        .pos-n { background: #e9ecef; color: #666; }
+        .hcp-chip {
+            font-size: .72rem;
+            padding: .15rem .45rem;
+            border-radius: 12px;
+        }
+        .lb-row-1 { background: linear-gradient(90deg, #fffdf0, #ffffff); }
+        .lb-row-2 { background: linear-gradient(90deg, #f9f9f9, #ffffff); }
+        .lb-row-3 { background: linear-gradient(90deg, #fff8f0, #ffffff); }
+        .player-link { text-decoration: none; color: inherit; font-weight: 600; }
+        .player-link:hover { color: #2d6a4f; }
+        th.sortable { cursor: pointer; user-select: none; }
+        th.sortable:hover { background: #e8f5e9; }
+        .sort-icon { font-size: .7rem; opacity: .45; }
+        .metric-highlight { font-weight: 700; }
+        .metric-ace { color: #dc3545; font-weight: 900; }
+    </style>
+}
+
+<!-- Hero Header -->
+<div class="lb-hero">
+    <div class="container-fluid px-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <h1 class="fw-bold mb-1">
+                    <i class="bi bi-bar-chart-fill me-2"></i>Season Leaderboard
+                </h1>
+                <p class="text-white-75 mb-0">
+                    @if (currentClub != null)
                     {
-                        <option value="@club.Id" selected="@(club.Id == Model.SelectedClubId)">@club.Name</option>
+                        <span><i class="bi bi-building me-1"></i>@currentClub.Name &nbsp;·&nbsp;</span>
+                    }
+                    <i class="bi bi-calendar me-1"></i>@Model.SelectedYear Season
+                </p>
+            </div>
+            <div class="col-auto d-flex gap-2 flex-wrap">
+                <!-- Club Selector -->
+                @if (Model.Clubs.Count > 1)
+                {
+                    <select class="form-select form-select-sm"
+                            onchange="window.location='?clubId='+this.value+'&year=@Model.SelectedYear'">
+                        @foreach (var club in Model.Clubs)
+                        {
+                            <option value="@club.Id" selected="@(club.Id == Model.SelectedClubId)">@club.Name</option>
+                        }
+                    </select>
+                }
+                <!-- Year Selector -->
+                <select class="form-select form-select-sm"
+                        onchange="window.location='?clubId=@Model.SelectedClubId&year='+this.value">
+                    @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 5; y--)
+                    {
+                        <option value="@y" selected="@(y == Model.SelectedYear)">@y</option>
                     }
                 </select>
-            }
-            <select class="form-select form-select-sm w-auto" onchange="window.location='?clubId=@Model.SelectedClubId&year='+this.value">
-                @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 5; y--)
-                {
-                    <option value="@y" selected="@(y == Model.SelectedYear)">@y</option>
-                }
-            </select>
+            </div>
         </div>
     </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
 
     @if (!Model.Entries.Any())
     {
         <div class="text-center py-5">
-            <i class="bi bi-bar-chart-line fs-1 text-muted mb-3 d-block"></i>
-            <h5 class="text-muted">No stats available for @Model.SelectedYear</h5>
+            <i class="bi bi-bar-chart-line display-1 text-muted opacity-25"></i>
+            <h4 class="mt-3 text-muted">No Stats Available for @Model.SelectedYear</h4>
+            <p class="text-muted small">
+                @(currentClub != null ? currentClub.Name + " has " : "No ")stats recorded for this season yet.
+            </p>
         </div>
         return;
     }
 
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fw-bold fs-3 text-success">@Model.Entries.Count</div>
+                <div class="text-muted small">Active Players</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fw-bold fs-3 text-primary">
+                    @Model.Entries.Sum(e => e.RoundsPlayed)
+                </div>
+                <div class="text-muted small">Total Rounds</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fw-bold fs-3" style="color:#fd7e14">
+                    @Model.Entries.Sum(e => e.TotalBirdiesOrBetter)
+                </div>
+                <div class="text-muted small">Club Birdies</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fw-bold fs-3 text-danger">
+                    @Model.Entries.Sum(e => e.TotalHoleInOnes)
+                </div>
+                <div class="text-muted small">Hole-in-Ones</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Table -->
     <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+            <span class="fw-semibold">
+                <i class="bi bi-trophy me-2 text-warning"></i>@(currentClub?.Name ?? "Club") Leaderboard — @Model.SelectedYear
+            </span>
+            <span class="text-muted small">@Model.Entries.Count player@(Model.Entries.Count != 1 ? "s" : "")</span>
+        </div>
         <div class="table-responsive">
-            <table class="table table-hover mb-0 leaderboard-table">
-                <thead class="table-dark">
+            <table class="table table-hover mb-0" id="lb-table">
+                <thead class="table-light">
                     <tr>
-                        <th style="width:50px">#</th>
-                        <th>Player</th>
-                        <th class="text-center">Rounds</th>
-                        <th class="text-center">Avg Score</th>
-                        <th class="text-center">Best</th>
-                        <th class="text-center">Birdies</th>
-                        <th class="text-center">Eagles</th>
-                        <th class="text-center">Ace</th>
-                        <th class="text-center">FH%</th>
-                        <th class="text-center">GIR%</th>
-                        <th class="text-center">HCP</th>
+                        <th class="ps-3" style="width:52px">#</th>
+                        <th class="sortable" data-col="1">
+                            Player <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-col="2" title="Rounds Played">
+                            Rounds <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-col="3" title="Average Gross Score">
+                            Avg <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-col="4" title="Best Gross Score">
+                            Best <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable d-none d-sm-table-cell" data-col="5" title="Total Birdies">
+                            Birdies <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable d-none d-md-table-cell" data-col="6" title="Total Eagles">
+                            Eagles <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th class="text-center d-none d-md-table-cell" title="Hole in Ones">
+                            Aces
+                        </th>
+                        <th class="text-center d-none d-lg-table-cell" title="Fairways Hit Percent">
+                            FIR%
+                        </th>
+                        <th class="text-center d-none d-lg-table-cell" title="Greens in Regulation Percent">
+                            GIR%
+                        </th>
+                        <th class="text-center d-none d-xl-table-cell" title="Average Putts per Round">
+                            Avg Putts
+                        </th>
+                        <th class="text-center" title="Handicap Index">
+                            HCP
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                     @for (int i = 0; i < Model.Entries.Count; i++)
                     {
-                        var entry = Model.Entries[i];
-                        var rank = i + 1;
-                        <tr class="@(rank <= 3 ? $"position-{rank}" : "")">
-                            <td>
-                                <span class="rank-badge @(rank == 1 ? "rank-1" : rank == 2 ? "rank-2" : rank == 3 ? "rank-3" : "bg-light text-dark")">@rank</span>
+                        var entry   = Model.Entries[i];
+                        var rank    = i + 1;
+                        var posClass = rank == 1 ? "pos-1" : rank == 2 ? "pos-2" : rank == 3 ? "pos-3" : "pos-n";
+                        var rowClass = rank == 1 ? "lb-row-1" : rank == 2 ? "lb-row-2" : rank == 3 ? "lb-row-3" : "";
+                        var isCurrentUser = Model.CurrentUserId != null && entry.UserId == Model.CurrentUserId;
+
+                        <tr class="@rowClass @(isCurrentUser ? "table-info bg-opacity-25" : "")">
+                            <td class="ps-3">
+                                <span class="pos-badge @posClass">@rank</span>
                             </td>
                             <td>
-                                <a asp-page="/Player/Stats" class="fw-semibold text-decoration-none">@entry.User.FullName</a>
+                                <a asp-page="/Player/Stats" class="player-link">
+                                    @entry.User.FullName
+                                </a>
+                                @if (isCurrentUser)
+                                {
+                                    <span class="badge bg-primary ms-1" style="font-size:.65rem">You</span>
+                                }
                                 @if (!string.IsNullOrEmpty(entry.User.City))
                                 {
-                                    <br><small class="text-muted">@entry.User.City@(!string.IsNullOrEmpty(entry.User.State) ? $", {entry.User.State}" : "")</small>
+                                    <br />
+                                    <small class="text-muted">
+                                        @entry.User.City@(!string.IsNullOrEmpty(entry.User.State) ? $", {entry.User.State}" : "")
+                                    </small>
                                 }
                             </td>
                             <td class="text-center">@entry.RoundsPlayed</td>
-                            <td class="text-center fw-bold">@(entry.AverageGrossScore?.ToString("F1") ?? "-")</td>
-                            <td class="text-center text-warning fw-bold">@(entry.BestGrossScore?.ToString() ?? "-")</td>
-                            <td class="text-center text-warning">@entry.TotalBirdiesOrBetter</td>
-                            <td class="text-center text-danger">@entry.TotalEagles</td>
-                            <td class="text-center text-danger fw-bold">@(entry.TotalHoleInOnes > 0 ? entry.TotalHoleInOnes.ToString() : "-")</td>
-                            <td class="text-center small">@(entry.FairwayHitPercent?.ToString("F0") != null ? entry.FairwayHitPercent.Value.ToString("F0") + "%" : "-")</td>
-                            <td class="text-center small">@(entry.GIRPercent?.ToString("F0") != null ? entry.GIRPercent.Value.ToString("F0") + "%" : "-")</td>
-                            <td class="text-center badge @(entry.HandicapIndexEnd.HasValue ? "bg-light text-dark" : "")">@(entry.HandicapIndexEnd?.ToString("F1") ?? "-")</td>
+                            <td class="text-center metric-highlight">
+                                @(entry.AverageGrossScore?.ToString("F1") ?? "—")
+                            </td>
+                            <td class="text-center fw-bold text-warning">
+                                @(entry.BestGrossScore?.ToString() ?? "—")
+                            </td>
+                            <td class="text-center d-none d-sm-table-cell" style="color:#fd7e14">
+                                @entry.TotalBirdiesOrBetter
+                            </td>
+                            <td class="text-center d-none d-md-table-cell text-danger">
+                                @entry.TotalEagles
+                            </td>
+                            <td class="text-center d-none d-md-table-cell">
+                                @if (entry.TotalHoleInOnes > 0)
+                                {
+                                    <span class="metric-ace">@entry.TotalHoleInOnes</span>
+                                    <i class="bi bi-stars text-warning ms-1 small"></i>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td class="text-center small d-none d-lg-table-cell">
+                                @(entry.FairwayHitPercent.HasValue ? entry.FairwayHitPercent.Value.ToString("F0") + "%" : "—")
+                            </td>
+                            <td class="text-center small d-none d-lg-table-cell">
+                                @(entry.GIRPercent.HasValue ? entry.GIRPercent.Value.ToString("F0") + "%" : "—")
+                            </td>
+                            <td class="text-center small d-none d-xl-table-cell">
+                                @(entry.AveragePutts.HasValue ? entry.AveragePutts.Value.ToString("F1") : "—")
+                            </td>
+                            <td class="text-center">
+                                @if (entry.HandicapIndexEnd.HasValue)
+                                {
+                                    <span class="badge bg-light text-dark border hcp-chip">
+                                        @entry.HandicapIndexEnd.Value.ToString("F1")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+        <div class="card-footer bg-white border-top text-muted small py-2 px-3">
+            Ranked by average gross score (ascending) · @Model.Entries.Count player@(Model.Entries.Count != 1 ? "s" : "") with at least 1 completed round
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+    // Client-side column sort
+    document.querySelectorAll('#lb-table th.sortable').forEach(th => {
+        let ascending = null;
+        th.addEventListener('click', () => {
+            ascending = ascending === true ? false : true;
+            const col = parseInt(th.dataset.col);
+            const tbody = document.querySelector('#lb-table tbody');
+            const rows = [...tbody.querySelectorAll('tr')];
+            rows.sort((a, b) => {
+                const aText = a.cells[col]?.textContent.trim() ?? '';
+                const bText = b.cells[col]?.textContent.trim() ?? '';
+                const aNum  = parseFloat(aText.replace(/[^0-9.\-]/g, ''));
+                const bNum  = parseFloat(bText.replace(/[^0-9.\-]/g, ''));
+                const cmp   = !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : aText.localeCompare(bText);
+                return ascending ? cmp : -cmp;
+            });
+            rows.forEach(r => tbody.appendChild(r));
+            // Reset rank badges after re-sort
+            rows.forEach((row, i) => {
+                const badge = row.querySelector('.pos-badge');
+                if (badge) {
+                    badge.textContent = i + 1;
+                    badge.className = 'pos-badge ' + (i === 0 ? 'pos-1' : i === 1 ? 'pos-2' : i === 2 ? 'pos-3' : 'pos-n');
+                }
+            });
+        });
+    });
+    </script>
+}

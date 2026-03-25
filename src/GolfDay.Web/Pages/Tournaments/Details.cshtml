@@ -1,91 +1,261 @@
 @page "{id:int}"
 @model GolfDay.Web.Pages.Tournaments.TournamentDetailsModel
+@using GolfDay.Domain.Enums
 @{
     ViewData["Title"] = Model.Tournament?.Name ?? "Tournament";
+    var t = Model.Tournament;
+    var isActive = t?.Status == TournamentStatus.Active;
+    var isCompleted = t?.Status == TournamentStatus.Completed;
 }
 
-@if (Model.Tournament == null)
+@if (t == null)
 {
-    <div class="container py-5 text-center"><h2>Tournament not found</h2></div>
+    <div class="container py-5 text-center">
+        <i class="bi bi-trophy display-1 text-muted"></i>
+        <h3 class="mt-3">Tournament Not Found</h3>
+        <a asp-page="/Tournaments/Index" class="btn btn-outline-success mt-3">Back to Tournaments</a>
+    </div>
     return;
 }
 
-<!-- Header -->
-<div class="bg-warning bg-opacity-10 border-bottom py-4 mb-4">
-    <div class="container">
+@section Styles {
+    <style>
+        .tournament-hero {
+            background: linear-gradient(135deg, #1a3c2e 0%, #2d6a4f 50%, #40916c 100%);
+            color: white;
+            padding: 2.5rem 0 2rem;
+        }
+        .tournament-hero.active {
+            background: linear-gradient(135deg, #7b4000 0%, #c0770a 50%, #f39c12 100%);
+        }
+        .tournament-hero.completed {
+            background: linear-gradient(135deg, #1a1a2e 0%, #374151 50%, #6b7280 100%);
+        }
+        .nav-tabs .nav-link { font-weight: 500; }
+        .nav-tabs .nav-link.active { font-weight: 700; }
+        .pos-badge {
+            width: 30px; height: 30px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: .8rem; font-weight: 700;
+        }
+        .pos-1 { background: #FFD700; color: #333; }
+        .pos-2 { background: #C0C0C0; color: #444; }
+        .pos-3 { background: #CD7F32; color: #fff; }
+        .pos-n { background: #e9ecef; color: #666; }
+        .score-under { color: #c0392b; font-weight: 700; }
+        .score-over  { color: #1565c0; }
+        .score-even  { color: #1b5e20; font-weight: 600; }
+        .round-tab { min-width: 48px; text-align: center; }
+        .entry-avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: #2d6a4f; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: .8rem; flex-shrink: 0;
+        }
+    </style>
+}
+
+<!-- Hero Header -->
+<div class="tournament-hero @(isActive ? "active" : isCompleted ? "completed" : "")">
+    <div class="container-fluid px-4">
         <div class="row align-items-center">
-            <div class="col">
-                <span class="badge @(Model.Tournament.Status == GolfDay.Domain.Enums.TournamentStatus.Active ? "bg-success" : "bg-secondary") mb-2">@Model.Tournament.Status</span>
-                <h1 class="fw-bold mb-1">@Model.Tournament.Name</h1>
-                <p class="text-muted mb-0">
-                    <i class="bi bi-building me-1"></i>@Model.Tournament.Club.Name
-                    <span class="mx-2">•</span>
-                    <i class="bi bi-calendar me-1"></i>@Model.Tournament.StartDate.ToString("MMM d") – @Model.Tournament.EndDate.ToString("MMM d, yyyy")
-                    <span class="mx-2">•</span>
-                    <i class="bi bi-trophy me-1"></i>@Model.Tournament.Format
-                </p>
+            <div class="col-lg-8">
+                <nav aria-label="breadcrumb" class="mb-2">
+                    <ol class="breadcrumb mb-0" style="--bs-breadcrumb-divider-color:rgba(255,255,255,.5)">
+                        <li class="breadcrumb-item">
+                            <a asp-page="/Tournaments/Index" class="text-white-50 text-decoration-none">Tournaments</a>
+                        </li>
+                        <li class="breadcrumb-item text-white active">@t.Name</li>
+                    </ol>
+                </nav>
+
+                <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                    @if (isActive)
+                    {
+                        <span class="badge bg-warning text-dark px-3 py-2">
+                            <i class="bi bi-broadcast me-1"></i>Active
+                        </span>
+                    }
+                    else if (t.Status == TournamentStatus.Registration)
+                    {
+                        <span class="badge bg-primary px-3 py-2">
+                            <i class="bi bi-pencil me-1"></i>Registration Open
+                        </span>
+                    }
+                    else if (isCompleted)
+                    {
+                        <span class="badge bg-secondary px-3 py-2">
+                            <i class="bi bi-check-circle me-1"></i>Completed
+                        </span>
+                    }
+                    <span class="badge bg-white bg-opacity-25 text-white">@t.Format</span>
+                </div>
+
+                <h1 class="display-5 fw-bold mb-2">@t.Name</h1>
+
+                <div class="d-flex flex-wrap gap-3 text-white-75 fs-6">
+                    <span><i class="bi bi-building me-2"></i>@t.Club.Name</span>
+                    <span><i class="bi bi-calendar3 me-2"></i>@t.StartDate.ToString("MMM d") – @t.EndDate.ToString("MMM d, yyyy")</span>
+                    @if (t.Course != null)
+                    {
+                        <span><i class="bi bi-geo-alt me-2"></i>@t.Course.Name</span>
+                    }
+                    <span><i class="bi bi-flag me-2"></i>@t.NumberOfRounds Round@(t.NumberOfRounds != 1 ? "s" : "")</span>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <div class="d-flex gap-2 justify-content-lg-end">
+                    <a asp-page="/Tournaments/Index" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-1"></i>All Tournaments
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="container pb-5">
+<!-- Summary Stats -->
+<div class="bg-white border-bottom">
+    <div class="container-fluid px-4 py-3">
+        <div class="row g-3">
+            <div class="col-6 col-md-3 text-center border-end">
+                <div class="fw-bold fs-4 text-success">@t.Entries.Count(e => e.Status != EntryStatus.Withdrawn)</div>
+                <div class="text-muted small">Entries</div>
+            </div>
+            <div class="col-6 col-md-3 text-center border-end">
+                <div class="fw-bold fs-4">@t.NumberOfRounds</div>
+                <div class="text-muted small">Rounds</div>
+            </div>
+            <div class="col-6 col-md-3 text-center border-end">
+                <div class="fw-bold fs-4">@t.MaxParticipants</div>
+                <div class="text-muted small">Max Players</div>
+            </div>
+            <div class="col-6 col-md-3 text-center">
+                @if (t.RegistrationDeadline.HasValue && t.Status == TournamentStatus.Registration)
+                {
+                    var daysLeft = (t.RegistrationDeadline.Value.Date - DateTime.Today).Days;
+                    <div class="fw-bold fs-4 @(daysLeft <= 3 ? "text-danger" : "text-primary")">@(daysLeft >= 0 ? daysLeft.ToString() : "—")</div>
+                    <div class="text-muted small">Days to Register</div>
+                }
+                else
+                {
+                    <div class="fw-bold fs-4 text-warning">@(Model.RankedEntries.Count > 0 ? "#" + (Model.RankedEntries.FirstOrDefault()?.User?.FullName?.Split(' ').FirstOrDefault() ?? "—") : "—")</div>
+                    <div class="text-muted small">Leader</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+    <!-- Tab Navigation -->
     <ul class="nav nav-tabs mb-4" id="tournamentTabs">
-        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#leaderboard">Leaderboard</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#entries">Entries (@Model.Tournament.Entries.Count)</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#info">Info</a></li>
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#tab-leaderboard">
+                <i class="bi bi-trophy me-1"></i>Leaderboard
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#tab-rounds">
+                <i class="bi bi-calendar3 me-1"></i>Rounds
+                <span class="badge bg-secondary ms-1">@t.NumberOfRounds</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#tab-entries">
+                <i class="bi bi-people me-1"></i>Entries
+                <span class="badge bg-secondary ms-1">@t.Entries.Count(e => e.Status != EntryStatus.Withdrawn)</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#tab-overview">
+                <i class="bi bi-info-circle me-1"></i>Overview
+            </a>
+        </li>
     </ul>
 
     <div class="tab-content">
-        <!-- Leaderboard Tab -->
-        <div class="tab-pane fade show active" id="leaderboard">
+
+        <!-- ── LEADERBOARD TAB ── -->
+        <div class="tab-pane fade show active" id="tab-leaderboard">
             @if (!Model.RankedEntries.Any())
             {
-                <div class="text-center py-4 text-muted">
-                    <i class="bi bi-hourglass fs-2 d-block mb-2"></i>No scores posted yet
+                <div class="text-center py-5">
+                    <i class="bi bi-hourglass-split display-4 text-muted opacity-50"></i>
+                    <h5 class="mt-3 text-muted">No Scores Posted Yet</h5>
+                    @if (t.Status == TournamentStatus.Registration)
+                    {
+                        <p class="text-muted small">Tournament is in registration — leaderboard will appear once play begins.</p>
+                    }
                 </div>
             }
             else
             {
                 <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                        <span class="fw-semibold"><i class="bi bi-trophy me-2 text-warning"></i>Tournament Leaderboard</span>
+                        <span class="text-muted small">@Model.RankedEntries.Count players</span>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0 leaderboard-table">
-                            <thead class="table-dark">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>#</th>
+                                    <th class="ps-3" style="width:50px">Pos</th>
                                     <th>Player</th>
-                                    @for (int r = 1; r <= Model.Tournament.NumberOfRounds; r++)
+                                    @for (int r = 1; r <= t.NumberOfRounds; r++)
                                     {
-                                        <th class="text-center">R@r</th>
+                                        <th class="text-center round-tab">R@r</th>
                                     }
                                     <th class="text-center">Total</th>
+                                    <th class="text-center">+/-</th>
                                     <th class="text-center">Net</th>
-                                    @if (!string.IsNullOrEmpty(Model.RankedEntries.FirstOrDefault()?.Prize))
+                                    @if (Model.RankedEntries.Any(e => !string.IsNullOrEmpty(e.Prize)))
                                     {
-                                        <th class="text-center">Prize</th>
+                                        <th class="text-center"><i class="bi bi-gift text-warning"></i></th>
                                     }
                                 </tr>
                             </thead>
                             <tbody>
+                                @{ int pos = 0; }
                                 @foreach (var entry in Model.RankedEntries)
                                 {
-                                    <tr class="@(entry.FinalPosition <= 3 ? $"position-{entry.FinalPosition}" : "")">
-                                        <td>
-                                            <span class="rank-badge @(entry.FinalPosition == 1 ? "rank-1" : entry.FinalPosition == 2 ? "rank-2" : entry.FinalPosition == 3 ? "rank-3" : "bg-light text-dark")">
-                                                @entry.FinalPosition
-                                            </span>
+                                    pos++;
+                                    var fp = entry.FinalPosition ?? pos;
+                                    var posClass = fp == 1 ? "pos-1" : fp == 2 ? "pos-2" : fp == 3 ? "pos-3" : "pos-n";
+                                    var courseParTotal = t.Course?.ParTotal ?? 72;
+                                    var totalPar = t.NumberOfRounds * courseParTotal;
+                                    var stp = entry.TotalGrossScore.HasValue ? entry.TotalGrossScore.Value - totalPar : (int?)null;
+                                    var stpStr = stp.HasValue ? (stp == 0 ? "E" : stp > 0 ? $"+{stp}" : stp.ToString()) : "—";
+                                    var stpClass = stp.HasValue ? (stp < 0 ? "score-under" : stp > 0 ? "score-over" : "score-even") : "";
+                                    <tr>
+                                        <td class="ps-3">
+                                            <span class="pos-badge @posClass">@fp</span>
                                         </td>
-                                        <td class="fw-semibold">@entry.User.FullName</td>
-                                        @for (int r = 1; r <= Model.Tournament.NumberOfRounds; r++)
+                                        <td>
+                                            <div class="fw-medium">@entry.User.FullName</div>
+                                            @if (entry.HandicapAtEntry.HasValue)
+                                            {
+                                                <small class="text-muted">HCP @entry.HandicapAtEntry.Value.ToString("F1")</small>
+                                            }
+                                        </td>
+                                        @for (int r = 1; r <= t.NumberOfRounds; r++)
                                         {
                                             var roundScore = Model.RoundScores.GetValueOrDefault((entry.UserId, r));
-                                            <td class="text-center">@(roundScore > 0 ? roundScore.ToString() : "-")</td>
+                                            <td class="text-center small">
+                                                @(roundScore > 0 ? roundScore.ToString() : "—")
+                                            </td>
                                         }
-                                        <td class="text-center fw-bold">@(entry.TotalGrossScore?.ToString() ?? "-")</td>
-                                        <td class="text-center text-muted">@(entry.TotalNetScore?.ToString() ?? "-")</td>
-                                        @if (!string.IsNullOrEmpty(Model.RankedEntries.FirstOrDefault()?.Prize))
+                                        <td class="text-center fw-bold">@(entry.TotalGrossScore?.ToString() ?? "—")</td>
+                                        <td class="text-center @stpClass">@stpStr</td>
+                                        <td class="text-center text-muted">@(entry.TotalNetScore?.ToString() ?? "—")</td>
+                                        @if (Model.RankedEntries.Any(e => !string.IsNullOrEmpty(e.Prize)))
                                         {
-                                            <td class="text-center text-warning small">@entry.Prize</td>
+                                            <td class="text-center">
+                                                @if (!string.IsNullOrEmpty(entry.Prize))
+                                                {
+                                                    <span class="badge bg-warning text-dark small">@entry.Prize</span>
+                                                }
+                                            </td>
                                         }
                                     </tr>
                                 }
@@ -96,22 +266,55 @@
             }
         </div>
 
-        <!-- Entries Tab -->
-        <div class="tab-pane fade" id="entries">
-            <div class="row g-2">
-                @foreach (var entry in Model.Tournament.Entries.Where(e => e.Status != GolfDay.Domain.Enums.EntryStatus.Withdrawn))
+        <!-- ── ROUNDS TAB ── -->
+        <div class="tab-pane fade" id="tab-rounds">
+            <div class="row g-4">
+                @for (int r = 1; r <= t.NumberOfRounds; r++)
                 {
-                    <div class="col-md-4">
-                        <div class="d-flex align-items-center gap-2 p-2 border rounded">
-                            <div class="profile-avatar bg-success text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                 style="width:36px;height:36px;font-size:0.9rem">
-                                @(entry.User.FirstName?.Substring(0, 1))@(entry.User.LastName?.Substring(0, 1))
+                    var roundEvents = t.Rounds.Where(ev => ev.RoundNumber == r).ToList();
+                    <div class="col-md-6 col-xl-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-success text-white">
+                                <span class="fw-semibold"><i class="bi bi-flag me-2"></i>Round @r</span>
                             </div>
-                            <div>
-                                <div class="fw-semibold small">@entry.User.FullName</div>
-                                @if (entry.HandicapAtEntry.HasValue)
+                            <div class="card-body">
+                                @if (roundEvents.Any())
                                 {
-                                    <small class="text-muted">HCP @entry.HandicapAtEntry.Value.ToString("F1")</small>
+                                    @foreach (var ev in roundEvents)
+                                    {
+                                        <div class="mb-2">
+                                            <div class="fw-medium">@ev.Name</div>
+                                            <div class="small text-muted">
+                                                <i class="bi bi-calendar me-1"></i>@ev.EventDate.ToString("MMM d, yyyy")
+                                                @if (ev.Course != null)
+                                                {
+                                                    <span class="ms-2"><i class="bi bi-geo-alt me-1"></i>@ev.Course.Name</span>
+                                                }
+                                            </div>
+                                            <div class="mt-1">
+                                                @if (ev.Status == EventStatus.InProgress)
+                                                {
+                                                    <span class="badge bg-danger small"><i class="bi bi-broadcast me-1"></i>Live</span>
+                                                    <a asp-page="/Scoring/Live" asp-route-eventId="@ev.Id"
+                                                       class="btn btn-danger btn-sm ms-2 py-0 px-2">Score Live</a>
+                                                }
+                                                else if (ev.Status == EventStatus.Completed)
+                                                {
+                                                    <span class="badge bg-secondary small"><i class="bi bi-check-circle me-1"></i>Completed</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-primary small">@ev.Status</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <p class="text-muted small mb-0">
+                                        <i class="bi bi-calendar-x me-1"></i>Not yet scheduled
+                                    </p>
                                 }
                             </div>
                         </div>
@@ -120,35 +323,137 @@
             </div>
         </div>
 
-        <!-- Info Tab -->
-        <div class="tab-pane fade" id="info">
+        <!-- ── ENTRIES TAB ── -->
+        <div class="tab-pane fade" id="tab-entries">
+            <div class="row g-2">
+                @foreach (var entry in t.Entries
+                    .Where(e => e.Status != EntryStatus.Withdrawn)
+                    .OrderBy(e => e.Status)
+                    .ThenBy(e => e.User.FullName))
+                {
+                    var (badgeClass, statusLabel) = entry.Status switch
+                    {
+                        EntryStatus.Confirmed    => ("bg-success", "Confirmed"),
+                        EntryStatus.Registered   => ("bg-primary", "Registered"),
+                        EntryStatus.WaitList     => ("bg-warning text-dark", "Wait List"),
+                        EntryStatus.Disqualified => ("bg-danger", "DQ"),
+                        EntryStatus.NoShow       => ("bg-dark", "No Show"),
+                        _                        => ("bg-secondary", entry.Status.ToString())
+                    };
+                    var initials = string.Concat(
+                        entry.User.FirstName?.Length > 0 ? entry.User.FirstName[0].ToString() : "",
+                        entry.User.LastName?.Length > 0  ? entry.User.LastName[0].ToString()  : "");
+
+                    <div class="col-sm-6 col-md-4 col-lg-3">
+                        <div class="d-flex align-items-center gap-2 p-2 border rounded bg-white">
+                            <div class="entry-avatar">@initials</div>
+                            <div class="min-w-0 flex-fill">
+                                <div class="fw-medium small text-truncate">@entry.User.FullName</div>
+                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                    <span class="badge @badgeClass" style="font-size:.65rem">@statusLabel</span>
+                                    @if (entry.HandicapAtEntry.HasValue)
+                                    {
+                                        <span class="text-muted" style="font-size:.7rem">
+                                            HCP @entry.HandicapAtEntry.Value.ToString("F1")
+                                        </span>
+                                    }
+                                    @if (entry.FinalPosition.HasValue)
+                                    {
+                                        <span class="badge @(entry.FinalPosition == 1 ? "bg-warning text-dark" : "bg-light text-dark border")" style="font-size:.65rem">
+                                            #@entry.FinalPosition
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- ── OVERVIEW TAB ── -->
+        <div class="tab-pane fade" id="tab-overview">
             <div class="row g-4">
                 <div class="col-md-6">
-                    @if (!string.IsNullOrEmpty(Model.Tournament.Description))
-                    {
-                        <div class="card border-0 shadow-sm mb-3">
-                            <div class="card-header bg-transparent fw-bold">About</div>
-                            <div class="card-body">@Model.Tournament.Description</div>
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white border-bottom fw-semibold">
+                            <i class="bi bi-info-circle me-2 text-success"></i>Details
                         </div>
-                    }
-                    @if (!string.IsNullOrEmpty(Model.Tournament.Rules))
+                        <div class="card-body">
+                            <dl class="row mb-0 small">
+                                <dt class="col-5 text-muted">Format</dt>
+                                <dd class="col-7">@t.Format</dd>
+                                <dt class="col-5 text-muted">Start Date</dt>
+                                <dd class="col-7">@t.StartDate.ToString("MMMM d, yyyy")</dd>
+                                <dt class="col-5 text-muted">End Date</dt>
+                                <dd class="col-7">@t.EndDate.ToString("MMMM d, yyyy")</dd>
+                                @if (t.RegistrationDeadline.HasValue)
+                                {
+                                    <dt class="col-5 text-muted">Reg. Deadline</dt>
+                                    <dd class="col-7">@t.RegistrationDeadline.Value.ToString("MMMM d, yyyy")</dd>
+                                }
+                                <dt class="col-5 text-muted">Rounds</dt>
+                                <dd class="col-7">@t.NumberOfRounds</dd>
+                                <dt class="col-5 text-muted">Max Players</dt>
+                                <dd class="col-7">@t.MaxParticipants</dd>
+                                <dt class="col-5 text-muted">Handicaps</dt>
+                                <dd class="col-7">@(t.UseHandicaps ? "Yes" : "No")</dd>
+                                @if (t.Course != null)
+                                {
+                                    <dt class="col-5 text-muted">Course</dt>
+                                    <dd class="col-7">@t.Course.Name</dd>
+                                    <dt class="col-5 text-muted">Par</dt>
+                                    <dd class="col-7">@t.Course.ParTotal</dd>
+                                }
+                                @if (!string.IsNullOrEmpty(t.Sponsors))
+                                {
+                                    <dt class="col-5 text-muted">Sponsors</dt>
+                                    <dd class="col-7">@t.Sponsors</dd>
+                                }
+                            </dl>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(t.Description))
                     {
-                        <div class="card border-0 shadow-sm mb-3">
-                            <div class="card-header bg-transparent fw-bold">Rules</div>
-                            <div class="card-body"><pre class="mb-0" style="white-space:pre-wrap">@Model.Tournament.Rules</pre></div>
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white border-bottom fw-semibold">
+                                <i class="bi bi-file-text me-2 text-success"></i>About
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0 text-muted small">@t.Description</p>
+                            </div>
                         </div>
                     }
                 </div>
+
                 <div class="col-md-6">
-                    @if (!string.IsNullOrEmpty(Model.Tournament.Prizes))
+                    @if (!string.IsNullOrEmpty(t.Rules))
                     {
-                        <div class="card border-0 shadow-sm mb-3">
-                            <div class="card-header bg-transparent fw-bold"><i class="bi bi-gift me-2"></i>Prizes</div>
-                            <div class="card-body"><pre class="mb-0" style="white-space:pre-wrap">@Model.Tournament.Prizes</pre></div>
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-white border-bottom fw-semibold">
+                                <i class="bi bi-book me-2 text-success"></i>Rules
+                            </div>
+                            <div class="card-body">
+                                <pre class="mb-0 small text-muted" style="white-space:pre-wrap;font-family:inherit">@t.Rules</pre>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(t.Prizes))
+                    {
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white border-bottom fw-semibold">
+                                <i class="bi bi-gift me-2 text-warning"></i>Prize Structure
+                            </div>
+                            <div class="card-body">
+                                <pre class="mb-0 small text-muted" style="white-space:pre-wrap;font-family:inherit">@t.Prizes</pre>
+                            </div>
                         </div>
                     }
                 </div>
             </div>
         </div>
+
     </div>
 </div>

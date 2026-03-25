@@ -1,120 +1,241 @@
 @page
 @model GolfDay.Web.Pages.Player.RoundsModel
+@using GolfDay.Domain.Enums
 @{
     ViewData["Title"] = "My Rounds";
+    var scoredRounds = Model.Rounds.Where(r => r.GrossScore.HasValue).ToList();
 }
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-0"><i class="bi bi-list-ol me-2 text-success"></i>My Rounds</h2>
-        <div class="d-flex gap-2">
-            <select class="form-select form-select-sm w-auto" onchange="window.location='?year='+this.value+'&clubId=@Model.SelectedClubId'">
-                @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 5; y--)
-                {
-                    <option value="@y" selected="@(y == Model.SelectedYear)">@y</option>
-                }
-            </select>
-            @if (Model.Clubs.Count > 1)
-            {
-                <select class="form-select form-select-sm w-auto" onchange="window.location='?year=@Model.SelectedYear&clubId='+this.value">
-                    <option value="">All Clubs</option>
-                    @foreach (var club in Model.Clubs)
+@section Styles {
+    <style>
+        .rounds-hero {
+            background: linear-gradient(135deg, #1a3c2e 0%, #2d6a4f 50%, #52b788 100%);
+            color: white;
+            padding: 1.75rem 0;
+        }
+        .summary-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.07);
+        }
+        .score-under { color: #c0392b; font-weight: 700; }
+        .score-over  { color: #1565c0; }
+        .score-even  { color: #1b5e20; font-weight: 600; }
+        .stat-label  { font-size: .75rem; color: #6c757d; }
+        .round-row:hover { cursor: pointer; background: #f8fffe; }
+        .sortable { cursor: pointer; user-select: none; }
+        .sortable:hover { background: #f1f3f5; }
+        .sort-icon { font-size: .7rem; opacity: .5; }
+    </style>
+}
+
+<!-- Hero Header -->
+<div class="rounds-hero">
+    <div class="container-fluid px-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <h1 class="fw-bold mb-1"><i class="bi bi-list-ol me-2"></i>Round History</h1>
+                <p class="text-white-75 mb-0">Full round-by-round breakdown</p>
+            </div>
+            <div class="col-auto d-flex gap-2 flex-wrap">
+                <!-- Year filter -->
+                <select class="form-select form-select-sm"
+                        onchange="window.location='?year='+this.value+'&clubId=@Model.SelectedClubId'">
+                    @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 5; y--)
                     {
-                        <option value="@club.Id" selected="@(club.Id == Model.SelectedClubId)">@club.Name</option>
+                        <option value="@y" selected="@(y == Model.SelectedYear)">@y</option>
                     }
                 </select>
-            }
+                <!-- Club filter -->
+                @if (Model.Clubs.Count > 1)
+                {
+                    <select class="form-select form-select-sm"
+                            onchange="window.location='?year=@Model.SelectedYear&clubId='+this.value">
+                        <option value="0" selected="@(Model.SelectedClubId == 0)">All Clubs</option>
+                        @foreach (var club in Model.Clubs)
+                        {
+                            <option value="@club.Id" selected="@(club.Id == Model.SelectedClubId)">@club.Name</option>
+                        }
+                    </select>
+                }
+            </div>
         </div>
     </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
 
     @if (!Model.Rounds.Any())
     {
         <div class="text-center py-5">
-            <i class="bi bi-clipboard-x fs-1 text-muted mb-3 d-block"></i>
-            <h5 class="text-muted">No rounds recorded for @Model.SelectedYear</h5>
+            <i class="bi bi-clipboard-x display-1 text-muted opacity-25"></i>
+            <h4 class="mt-3 text-muted">No Rounds Found</h4>
+            <p class="text-muted small">
+                No completed rounds in @Model.SelectedYear
+                @(Model.SelectedClubId > 0 ? "for the selected club" : "").
+            </p>
+            <a asp-page="/Events/Index" class="btn btn-success">
+                <i class="bi bi-calendar-event me-1"></i>Find an Event
+            </a>
         </div>
         return;
     }
 
-    <!-- Summary row -->
+    <!-- ── Summary Stats Strip ─────────────────────────────────────── -->
     <div class="row g-3 mb-4">
-        <div class="col-6 col-md-2">
-            <div class="card border-0 bg-light text-center p-3">
-                <div class="fw-bold fs-4 text-success">@Model.Rounds.Count</div>
-                <small class="text-muted">Rounds</small>
+        <div class="col-6 col-sm-4 col-md-2">
+            <div class="summary-card text-center p-3 bg-white">
+                <div class="fw-bold fs-3 text-success">@Model.Rounds.Count</div>
+                <div class="stat-label">Rounds</div>
             </div>
         </div>
-        @if (Model.Rounds.Any(r => r.GrossScore.HasValue))
+        @if (scoredRounds.Any())
         {
-            <div class="col-6 col-md-2">
-                <div class="card border-0 bg-light text-center p-3">
-                    <div class="fw-bold fs-4 text-primary">@Model.Rounds.Where(r => r.GrossScore.HasValue).Average(r => r.GrossScore!.Value).ToString("F1")</div>
-                    <small class="text-muted">Avg Score</small>
+            <div class="col-6 col-sm-4 col-md-2">
+                <div class="summary-card text-center p-3 bg-white">
+                    <div class="fw-bold fs-3 text-primary">
+                        @scoredRounds.Average(r => r.GrossScore!.Value).ToString("F1")
+                    </div>
+                    <div class="stat-label">Avg Score</div>
                 </div>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="card border-0 bg-light text-center p-3">
-                    <div class="fw-bold fs-4 text-warning">@Model.Rounds.Where(r => r.GrossScore.HasValue).Min(r => r.GrossScore!.Value)</div>
-                    <small class="text-muted">Best Score</small>
+            <div class="col-6 col-sm-4 col-md-2">
+                <div class="summary-card text-center p-3 bg-white">
+                    <div class="fw-bold fs-3 text-warning">@scoredRounds.Min(r => r.GrossScore!.Value)</div>
+                    <div class="stat-label">Best Score</div>
                 </div>
             </div>
         }
-        <div class="col-6 col-md-2">
-            <div class="card border-0 bg-light text-center p-3">
-                <div class="fw-bold fs-4 text-danger">@Model.Rounds.Sum(r => r.Birdies ?? 0)</div>
-                <small class="text-muted">Total Birdies</small>
+        <div class="col-6 col-sm-4 col-md-2">
+            <div class="summary-card text-center p-3 bg-white">
+                <div class="fw-bold fs-3" style="color:#fd7e14">@Model.Rounds.Sum(r => r.Birdies ?? 0)</div>
+                <div class="stat-label">Birdies</div>
+            </div>
+        </div>
+        <div class="col-6 col-sm-4 col-md-2">
+            <div class="summary-card text-center p-3 bg-white">
+                <div class="fw-bold fs-3 text-danger">@Model.Rounds.Sum(r => r.Eagles ?? 0)</div>
+                <div class="stat-label">Eagles</div>
+            </div>
+        </div>
+        <div class="col-6 col-sm-4 col-md-2">
+            <div class="summary-card text-center p-3 bg-white">
+                <div class="fw-bold fs-3">@(Model.Rounds.Where(r => r.TotalPutts.HasValue).Sum(r => r.TotalPutts!))</div>
+                <div class="stat-label">Total Putts</div>
             </div>
         </div>
     </div>
 
+    <!-- ── Rounds Table ────────────────────────────────────────────── -->
     <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+            <span class="fw-semibold">
+                <i class="bi bi-table me-2 text-success"></i>@Model.Rounds.Count Round@(Model.Rounds.Count != 1 ? "s" : "") in @Model.SelectedYear
+            </span>
+            <span class="text-muted small">Click a row to view details</span>
+        </div>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0" id="rounds-table">
                 <thead class="table-light">
                     <tr>
-                        <th>Date</th>
+                        <th class="sortable ps-3" data-col="0">
+                            Date <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
                         <th>Event</th>
-                        <th>Course</th>
-                        <th class="text-center">Gross</th>
+                        <th class="d-none d-md-table-cell">Course</th>
+                        <th class="text-center sortable" data-col="3">
+                            Gross <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
                         <th class="text-center">+/-</th>
                         <th class="text-center">Net</th>
-                        <th class="text-center">Birds</th>
-                        <th class="text-center">Putts</th>
-                        <th class="text-center">FH%</th>
-                        <th class="text-center">GIR%</th>
+                        <th class="text-center d-none d-sm-table-cell">Birdies</th>
+                        <th class="text-center d-none d-sm-table-cell">Eagles</th>
+                        <th class="text-center d-none d-lg-table-cell">Putts</th>
+                        <th class="text-center d-none d-lg-table-cell">FIR%</th>
+                        <th class="text-center d-none d-lg-table-cell">GIR%</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var round in Model.Rounds)
                     {
-                        var toPar = round.GrossScore.HasValue ? round.GrossScore.Value - (round.Course?.ParTotal ?? 72) : (int?)null;
+                        var parTotal   = round.Course?.ParTotal ?? 72;
+                        var toPar      = round.GrossScore.HasValue ? round.GrossScore.Value - parTotal : (int?)null;
+                        var stpStr     = toPar.HasValue ? (toPar == 0 ? "E" : toPar > 0 ? $"+{toPar}" : toPar.ToString()) : "—";
+                        var stpClass   = toPar.HasValue ? (toPar < 0 ? "score-under" : toPar > 0 ? "score-over" : "score-even") : "";
                         var fairwayPct = round.FairwaysHit.HasValue && round.TotalFairways.HasValue && round.TotalFairways > 0
-                            ? (double)round.FairwaysHit.Value / round.TotalFairways.Value * 100 : (double?)null;
-                        var girPct = round.GreensInRegulation.HasValue && round.TotalGreens.HasValue && round.TotalGreens > 0
-                            ? (double)round.GreensInRegulation.Value / round.TotalGreens.Value * 100 : (double?)null;
+                                        ? (double)round.FairwaysHit.Value / round.TotalFairways.Value * 100 : (double?)null;
+                        var girPct     = round.GreensInRegulation.HasValue && round.TotalGreens.HasValue && round.TotalGreens > 0
+                                        ? (double)round.GreensInRegulation.Value / round.TotalGreens.Value * 100 : (double?)null;
 
-                        <tr>
-                            <td class="text-nowrap">@round.CompletedAt?.ToString("MMM d, yyyy")</td>
+                        <tr class="round-row"
+                            onclick="window.location='/Events/Details/@round.EventId'"
+                            title="View event details">
+                            <td class="ps-3 text-nowrap">
+                                @(round.CompletedAt?.ToString("MMM d, yyyy") ?? round.Event.EventDate.ToString("MMM d, yyyy"))
+                            </td>
                             <td>
-                                <a asp-page="/Events/Details" asp-route-id="@round.EventId" class="text-decoration-none fw-semibold">
+                                <a asp-page="/Events/Details" asp-route-id="@round.EventId"
+                                   class="text-decoration-none fw-medium"
+                                   onclick="event.stopPropagation()">
                                     @round.Event.Name
                                 </a>
+                                <br />
+                                <small class="text-muted">@round.Event.Club.Name</small>
                             </td>
-                            <td class="text-muted small">@round.Course?.Name</td>
-                            <td class="text-center fw-bold">@(round.GrossScore?.ToString() ?? "-")</td>
-                            <td class="text-center fw-bold @(toPar < 0 ? "score-eagle-text" : toPar == 0 ? "score-par-text" : "score-bogey-text")">
-                                @if (toPar.HasValue) { @(toPar == 0 ? "E" : (toPar > 0 ? $"+{toPar}" : toPar.ToString())) }
-                                else { <span>-</span> }
+                            <td class="text-muted small d-none d-md-table-cell">
+                                @round.Course?.Name
+                                @if (round.Course != null)
+                                {
+                                    <span class="ms-1 text-success">(Par @round.Course.ParTotal)</span>
+                                }
                             </td>
-                            <td class="text-center text-muted">@(round.NetScore?.ToString() ?? "-")</td>
-                            <td class="text-center text-warning">@(round.Birdies?.ToString() ?? "-")</td>
-                            <td class="text-center">@(round.TotalPutts?.ToString() ?? "-")</td>
-                            <td class="text-center small">@(fairwayPct?.ToString("F0") != null ? fairwayPct.Value.ToString("F0") + "%" : "-")</td>
-                            <td class="text-center small">@(girPct?.ToString("F0") != null ? girPct.Value.ToString("F0") + "%" : "-")</td>
+                            <td class="text-center fw-bold">@(round.GrossScore?.ToString() ?? "—")</td>
+                            <td class="text-center @stpClass">@stpStr</td>
+                            <td class="text-center text-muted">@(round.NetScore?.ToString() ?? "—")</td>
+                            <td class="text-center d-none d-sm-table-cell" style="color:#fd7e14">
+                                @(round.Birdies.HasValue ? (round.Birdies > 0 ? round.Birdies.ToString() : "—") : "—")
+                            </td>
+                            <td class="text-center d-none d-sm-table-cell text-danger">
+                                @(round.Eagles.HasValue ? (round.Eagles > 0 ? round.Eagles.ToString() : "—") : "—")
+                            </td>
+                            <td class="text-center d-none d-lg-table-cell">@(round.TotalPutts?.ToString() ?? "—")</td>
+                            <td class="text-center d-none d-lg-table-cell small">
+                                @(fairwayPct.HasValue ? fairwayPct.Value.ToString("F0") + "%" : "—")
+                            </td>
+                            <td class="text-center d-none d-lg-table-cell small">
+                                @(girPct.HasValue ? girPct.Value.ToString("F0") + "%" : "—")
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+        <div class="card-footer bg-white border-top text-muted small py-2 px-3">
+            Showing @Model.Rounds.Count completed round@(Model.Rounds.Count != 1 ? "s" : "") · Click any row to view event details
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+    // Basic client-side column sort
+    document.querySelectorAll('.sortable').forEach(th => {
+        let asc = true;
+        th.addEventListener('click', () => {
+            const col = parseInt(th.dataset.col);
+            const tbody = document.querySelector('#rounds-table tbody');
+            const rows = [...tbody.querySelectorAll('tr')];
+            rows.sort((a, b) => {
+                const aText = a.cells[col]?.textContent.trim() ?? '';
+                const bText = b.cells[col]?.textContent.trim() ?? '';
+                const aNum  = parseFloat(aText.replace(/[^0-9.\-]/g, ''));
+                const bNum  = parseFloat(bText.replace(/[^0-9.\-]/g, ''));
+                if (!isNaN(aNum) && !isNaN(bNum)) return asc ? aNum - bNum : bNum - aNum;
+                return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+            });
+            rows.forEach(r => tbody.appendChild(r));
+            asc = !asc;
+        });
+    });
+    </script>
+}

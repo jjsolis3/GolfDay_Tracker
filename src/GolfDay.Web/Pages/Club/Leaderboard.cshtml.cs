@@ -14,30 +14,34 @@ public class LeaderboardModel : PageModel
     public LeaderboardModel(IApplicationDbContext db) => _db = db;
 
     public List<PlayerSeasonStats> Entries { get; set; } = new();
-    public List<Club> Clubs { get; set; } = new();
-    public int SelectedClubId { get; set; }
-    public int SelectedYear { get; set; }
+    public List<Club> Clubs               { get; set; } = new();
+    public int SelectedClubId             { get; set; }
+    public int SelectedYear               { get; set; }
+    public string? CurrentUserId          { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int? clubId, int? year)
     {
-        SelectedYear = year ?? DateTime.UtcNow.Year;
+        SelectedYear  = year ?? DateTime.UtcNow.Year;
+        CurrentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        // Get clubs visible to the current user (public clubs or clubs they belong to)
-        if (userId != null)
+        // Build club list from the current user's memberships first
+        if (!string.IsNullOrEmpty(CurrentUserId))
         {
             Clubs = await _db.ClubMemberships
-                .Where(m => m.UserId == userId && m.IsActive)
+                .Where(m => m.UserId == CurrentUserId && m.IsActive)
                 .Select(m => m.Club)
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Name)
                 .ToListAsync();
         }
 
+        // Fall back to public clubs if the user has no memberships or is not logged in
         if (!Clubs.Any())
         {
             Clubs = await _db.Clubs
                 .Where(c => c.IsActive && c.IsPublic)
-                .Take(10)
+                .OrderBy(c => c.Name)
+                .Take(20)
                 .ToListAsync();
         }
 
@@ -47,8 +51,11 @@ public class LeaderboardModel : PageModel
         {
             Entries = await _db.PlayerSeasonStats
                 .Include(s => s.User)
-                .Where(s => s.ClubId == SelectedClubId && s.Year == SelectedYear && s.RoundsPlayed > 0)
+                .Where(s => s.ClubId      == SelectedClubId
+                         && s.Year        == SelectedYear
+                         && s.RoundsPlayed > 0)
                 .OrderBy(s => s.AverageGrossScore)
+                .ThenByDescending(s => s.RoundsPlayed)
                 .ToListAsync();
         }
 
