@@ -255,9 +255,53 @@ namespace GolfDay.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<decimal?>("AnnualDueAmount")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<bool>("CanBookTeeTime")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanEnterLeagues")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanEnterTournaments")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("DuesPaidThrough")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("InvitationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("JoinRequestId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("LastPaymentAmount")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime?>("LastPaymentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MembershipStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MembershipType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PaymentNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("TotalPaid")
+                        .HasColumnType("decimal(10,2)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClubId");
+
+                    b.HasIndex("InvitationId");
+
+                    b.HasIndex("JoinRequestId");
 
                     b.HasIndex("UserId");
 
@@ -1346,6 +1390,577 @@ namespace GolfDay.Infrastructure.Migrations
                     b.ToTable("TournamentEntries");
                 });
 
+            modelBuilder.Entity("GolfDay.Domain.Entities.ClubAnnouncement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<int>("ClubId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Target")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex(new[] { "ClubId", "IsPublished", "IsPinned" });
+
+                    b.ToTable("ClubAnnouncements");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.ClubJoinRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicantMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("ClubId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReviewNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ClubJoinRequests");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.ClubMembershipInvitation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClubId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InvitedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsJoinCode")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("MaxUses")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UseCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
+
+                    b.HasIndex("InvitedByUserId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("ClubMembershipInvitations");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.CourseConditionReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClubId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("FairwayCondition")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GreenSpeed")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsOfficialReport")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("PinPositions")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("ReportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReportedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
+
+                    b.HasIndex("ReportedByUserId");
+
+                    b.HasIndex(new[] { "CourseId", "ReportedAt" });
+
+                    b.ToTable("CourseConditionReports");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.EventSponsor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("EventId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LeagueSeasonId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SponsorId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TournamentId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("LeagueSeasonId");
+
+                    b.HasIndex("SponsorId");
+
+                    b.HasIndex("TournamentId");
+
+                    b.ToTable("EventSponsors");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.EventWaitlistEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("NotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PromotedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex(new[] { "EventId", "Status", "Position" });
+
+                    b.HasIndex(new[] { "EventId", "UserId" })
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EventWaitlistEntries");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex(new[] { "UserId", "IsRead" });
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.Sponsor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClubId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ContactEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("SponsorshipYear")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Tier")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex(new[] { "ClubId", "IsActive" });
+
+                    b.ToTable("Sponsors");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.TeeTimeBooking", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("NumberOfPlayers")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TeeTimeSlotId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex(new[] { "TeeTimeSlotId", "UserId" })
+                        .IsUnique();
+
+                    b.ToTable("TeeTimeBookings");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.TeeTimeSlot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClubId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MaxPlayers")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateOnly>("SlotDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex(new[] { "ClubId", "SlotDate", "StartTime" });
+
+                    b.ToTable("TeeTimeSlots");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -1478,6 +2093,51 @@ namespace GolfDay.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("GolfDay.Domain.Entities.ClubAnnouncement", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+
+                    b.Navigation("CreatedBy");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.ClubJoinRequest", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "ReviewedBy")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+
+                    b.Navigation("ReviewedBy");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("GolfDay.Domain.Entities.ClubMembership", b =>
                 {
                     b.HasOne("GolfDay.Domain.Entities.Club", "Club")
@@ -1485,6 +2145,16 @@ namespace GolfDay.Infrastructure.Migrations
                         .HasForeignKey("ClubId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.ClubMembershipInvitation", "Invitation")
+                        .WithMany("ResultingMemberships")
+                        .HasForeignKey("InvitationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("GolfDay.Domain.Entities.ClubJoinRequest", "JoinRequest")
+                        .WithMany()
+                        .HasForeignKey("JoinRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "User")
                         .WithMany("ClubMemberships")
@@ -1494,7 +2164,174 @@ namespace GolfDay.Infrastructure.Migrations
 
                     b.Navigation("Club");
 
+                    b.Navigation("Invitation");
+
+                    b.Navigation("JoinRequest");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.ClubMembershipInvitation", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "InvitedBy")
+                        .WithMany()
+                        .HasForeignKey("InvitedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+
+                    b.Navigation("InvitedBy");
+
+                    b.Navigation("ResultingMemberships");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.CourseConditionReport", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.GolfCourse", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "ReportedBy")
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+
+                    b.Navigation("Course");
+
+                    b.Navigation("ReportedBy");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.EventSponsor", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.GolfEvent", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("GolfDay.Domain.Entities.LeagueSeason", "LeagueSeason")
+                        .WithMany()
+                        .HasForeignKey("LeagueSeasonId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("GolfDay.Domain.Entities.Sponsor", "Sponsor")
+                        .WithMany("EventSponsors")
+                        .HasForeignKey("SponsorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.Tournament", "Tournament")
+                        .WithMany()
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Event");
+
+                    b.Navigation("LeagueSeason");
+
+                    b.Navigation("Sponsor");
+
+                    b.Navigation("Tournament");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.EventWaitlistEntry", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.GolfEvent", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.Sponsor", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+
+                    b.Navigation("EventSponsors");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.TeeTimeBooking", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.TeeTimeSlot", "TeeTimeSlot")
+                        .WithMany("Bookings")
+                        .HasForeignKey("TeeTimeSlotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("TeeTimeSlot");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("GolfDay.Domain.Entities.TeeTimeSlot", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.GolfCourse", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Bookings");
+
+                    b.Navigation("Club");
+
+                    b.Navigation("Course");
                 });
 
             modelBuilder.Entity("GolfDay.Domain.Entities.CourseHole", b =>
