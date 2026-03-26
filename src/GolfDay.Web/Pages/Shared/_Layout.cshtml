@@ -1,3 +1,5 @@
+@inject GolfDay.Web.Services.IClubAccessService _clubAccess
+@using System.Security.Claims
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,32 +31,53 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarMain">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-page="/Events/Index">
-                                <i class="bi bi-calendar-event me-1"></i>Events
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-page="/Tournaments/Index">
-                                <i class="bi bi-trophy me-1"></i>Tournaments
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-page="/League/Index">
-                                <i class="bi bi-people me-1"></i>Leagues
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-page="/Club/Leaderboard">
-                                <i class="bi bi-bar-chart me-1"></i>Standings
-                            </a>
-                        </li>
-                        @if (User.Identity?.IsAuthenticated == true)
+                    @{
+                        bool _isMember = false;
+                        if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Admin") && !User.IsInRole("ClubManager"))
                         {
+                            var _uid = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                            if (_uid != null) _isMember = await _clubAccess.HasActiveMembershipAsync(_uid);
+                        }
+                        else if (User.IsInRole("Admin") || User.IsInRole("ClubManager"))
+                        {
+                            _isMember = true;
+                        }
+                        bool _showClubFeatures = !User.Identity!.IsAuthenticated || _isMember;
+                    }
+                    <ul class="navbar-nav me-auto">
+                        @if (_showClubFeatures)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Events/Index">
+                                    <i class="bi bi-calendar-event me-1"></i>Events
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Tournaments/Index">
+                                    <i class="bi bi-trophy me-1"></i>Tournaments
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/League/Index">
+                                    <i class="bi bi-people me-1"></i>Leagues
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Club/Leaderboard">
+                                    <i class="bi bi-bar-chart me-1"></i>Standings
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" asp-page="/TeeTime/Index">
                                     <i class="bi bi-clock me-1"></i>Tee Times
+                                </a>
+                            </li>
+                        }
+                        else if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-warning" asp-page="/Club/Join">
+                                    <i class="bi bi-building-add me-1"></i>Join a Club
                                 </a>
                             </li>
                         }
@@ -161,24 +184,36 @@
                         <i class="bi bi-pencil-square"></i>
                     </a>
                 </div>
-                <div class="fab-action-item">
-                    <label>Join Event</label>
-                    <a asp-page="/Events/Index" asp-route-filter="upcoming" class="fab-action-btn bg-primary" title="Join Event">
-                        <i class="bi bi-calendar-plus"></i>
-                    </a>
-                </div>
-                <div class="fab-action-item">
-                    <label>Book Tee Time</label>
-                    <a asp-page="/TeeTime/Index" class="fab-action-btn bg-warning" title="Book Tee Time" style="color:#212529;">
-                        <i class="bi bi-clock"></i>
-                    </a>
-                </div>
-                <div class="fab-action-item">
-                    <label>Report Conditions</label>
-                    <a asp-page="/Club/Dashboard" class="fab-action-btn bg-info" title="Report Conditions" style="color:#212529;">
-                        <i class="bi bi-cloud-sun"></i>
-                    </a>
-                </div>
+                @if (_isMember)
+                {
+                    <div class="fab-action-item">
+                        <label>Join Event</label>
+                        <a asp-page="/Events/Index" asp-route-filter="upcoming" class="fab-action-btn bg-primary" title="Join Event">
+                            <i class="bi bi-calendar-plus"></i>
+                        </a>
+                    </div>
+                    <div class="fab-action-item">
+                        <label>Book Tee Time</label>
+                        <a asp-page="/TeeTime/Index" class="fab-action-btn bg-warning" title="Book Tee Time" style="color:#212529;">
+                            <i class="bi bi-clock"></i>
+                        </a>
+                    </div>
+                    <div class="fab-action-item">
+                        <label>Report Conditions</label>
+                        <a asp-page="/Club/Dashboard" class="fab-action-btn bg-info" title="Report Conditions" style="color:#212529;">
+                            <i class="bi bi-cloud-sun"></i>
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="fab-action-item">
+                        <label>Join a Club</label>
+                        <a asp-page="/Club/Join" class="fab-action-btn bg-warning" title="Join a Club" style="color:#212529;">
+                            <i class="bi bi-building-add"></i>
+                        </a>
+                    </div>
+                }
             </div>
         </div>
     }

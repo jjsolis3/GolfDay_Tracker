@@ -1,5 +1,6 @@
 using GolfDay.Application.Common.Interfaces;
 using GolfDay.Infrastructure;
+using GolfDay.Web.Services;
 using GolfDay.Infrastructure.Data;
 using GolfDay.Web.Hubs;
 using GolfDay.Web.Services;
@@ -24,6 +25,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // HTTP Context accessor (needed for current user service)
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IClubAccessService, ClubAccessService>();
 
 // Razor Pages + Controllers (for API endpoints)
 builder.Services.AddRazorPages(options =>
@@ -105,6 +107,39 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Club membership gate — authenticated non-members are redirected to /Club/Join
+// when they try to access club-specific features.
+app.Use(async (context, next) =>
+{
+    var user = context.User;
+    if (user.Identity?.IsAuthenticated == true
+        && !user.IsInRole("Admin")
+        && !user.IsInRole("ClubManager"))
+    {
+        var path = context.Request.Path.Value ?? string.Empty;
+        var lower = path.ToLowerInvariant();
+
+        var isGated =
+            lower.StartsWith("/events") ||
+            lower.StartsWith("/league") ||
+            lower.StartsWith("/tournaments") ||
+            lower.StartsWith("/club/leaderboard") ||
+            lower.StartsWith("/teetime");
+
+        if (isGated)
+        {
+            var svc    = context.RequestServices.GetRequiredService<IClubAccessService>();
+            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userId != null && !await svc.HasActiveMembershipAsync(userId))
+            {
+                context.Response.Redirect("/Club/Join");
+                return;
+            }
+        }
+    }
+    await next();
+});
 
 app.MapRazorPages();
 app.MapControllers();
