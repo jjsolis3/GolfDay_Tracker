@@ -156,14 +156,14 @@
             </button>
             <div id="fab-actions" class="fab-actions" role="menu">
                 <div class="fab-action-item">
-                    <label>Post Score</label>
-                    <a asp-page="/Events/Index" class="fab-action-btn bg-success" title="Post Score">
+                    <label>My Rounds</label>
+                    <a asp-page="/Player/Rounds" class="fab-action-btn bg-success" title="My Rounds">
                         <i class="bi bi-pencil-square"></i>
                     </a>
                 </div>
                 <div class="fab-action-item">
                     <label>Join Event</label>
-                    <a asp-page="/Events/Index" class="fab-action-btn bg-primary" title="Join Event">
+                    <a asp-page="/Events/Index" asp-route-filter="upcoming" class="fab-action-btn bg-primary" title="Join Event">
                         <i class="bi bi-calendar-plus"></i>
                     </a>
                 </div>

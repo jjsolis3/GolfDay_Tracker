@@ -21,7 +21,7 @@ public class ClubMembershipConfiguration : IEntityTypeConfiguration<ClubMembersh
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(m => m.User)
-            .WithMany()
+            .WithMany(u => u.ClubMemberships)
             .HasForeignKey(m => m.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
