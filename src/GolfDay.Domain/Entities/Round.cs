@@ -5,7 +5,7 @@ namespace GolfDay.Domain.Entities;
 
 public class Round : BaseEntity
 {
-    public int EventId { get; set; }
+    public int? EventId { get; set; }
     public int CourseId { get; set; }
     public string UserId { get; set; } = string.Empty;
     public int RoundNumber { get; set; } = 1;
@@ -39,7 +39,7 @@ public class Round : BaseEntity
     public string? AttestationNotes { get; set; }
 
     // Navigation
-    public GolfEvent Event { get; set; } = null!;
+    public GolfEvent? Event { get; set; }
     public GolfCourse Course { get; set; } = null!;
     public ApplicationUser User { get; set; } = null!;
     public ICollection<HoleScore> HoleScores { get; set; } = new List<HoleScore>();

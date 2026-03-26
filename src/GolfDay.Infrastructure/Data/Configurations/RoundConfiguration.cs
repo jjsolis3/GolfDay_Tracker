@@ -15,7 +15,7 @@ public class RoundConfiguration : IEntityTypeConfiguration<Round>
         builder.HasOne(r => r.Event)
                .WithMany(e => e.Rounds)
                .HasForeignKey(r => r.EventId)
-               .OnDelete(DeleteBehavior.Cascade);
+               .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(r => r.Course)
                .WithMany(c => c.Rounds)

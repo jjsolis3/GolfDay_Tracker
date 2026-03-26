@@ -26,6 +26,8 @@ public enum NotificationType
     // League / Tournament
     LeagueMatchScheduled = 40,
     TournamentRegistrationOpen = 41,
+    LeagueMatchMessage = 42,
+    LeagueMatchDateProposed = 43,
 
     // General
     General = 99

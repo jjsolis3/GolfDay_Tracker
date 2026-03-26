@@ -31,6 +31,7 @@ public interface IApplicationDbContext
     DbSet<EventSponsor> EventSponsors { get; }
     DbSet<EventWaitlistEntry> EventWaitlistEntries { get; }
     DbSet<CourseConditionReport> CourseConditionReports { get; }
+    DbSet<Message> Messages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

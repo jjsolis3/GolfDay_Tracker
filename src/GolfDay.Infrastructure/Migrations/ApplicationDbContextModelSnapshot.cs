@@ -1163,7 +1163,7 @@ namespace GolfDay.Infrastructure.Migrations
                     b.Property<int?>("Eagles")
                         .HasColumnType("integer");
 
-                    b.Property<int>("EventId")
+                    b.Property<int?>("EventId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("FairwaysHit")
@@ -1742,6 +1742,59 @@ namespace GolfDay.Infrastructure.Migrations
                     b.ToTable("EventWaitlistEntries");
                 });
 
+            modelBuilder.Entity("GolfDay.Domain.Entities.Message", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FromUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LeagueMatchId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ToUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromUserId");
+
+                    b.HasIndex("LeagueMatchId");
+
+                    b.HasIndex("ToUserId");
+
+                    b.ToTable("Messages");
+                });
+
             modelBuilder.Entity("GolfDay.Domain.Entities.Notification", b =>
                 {
                     b.Property<int>("Id")
@@ -2279,6 +2332,33 @@ namespace GolfDay.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("GolfDay.Domain.Entities.Message", b =>
+                {
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "FromUser")
+                        .WithMany()
+                        .HasForeignKey("FromUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "ToUser")
+                        .WithMany()
+                        .HasForeignKey("ToUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GolfDay.Domain.Entities.LeagueMatch", "LeagueMatch")
+                        .WithMany()
+                        .HasForeignKey("LeagueMatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FromUser");
+
+                    b.Navigation("LeagueMatch");
+
+                    b.Navigation("ToUser");
+                });
+
             modelBuilder.Entity("GolfDay.Domain.Entities.Notification", b =>
                 {
                     b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "User")
@@ -2566,8 +2646,7 @@ namespace GolfDay.Infrastructure.Migrations
                     b.HasOne("GolfDay.Domain.Entities.GolfEvent", "Event")
                         .WithMany("Rounds")
                         .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("GolfDay.Domain.Entities.ApplicationUser", "User")
                         .WithMany("Rounds")

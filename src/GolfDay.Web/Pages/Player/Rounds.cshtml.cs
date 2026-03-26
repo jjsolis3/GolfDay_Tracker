@@ -54,7 +54,7 @@ public class RoundsModel : PageModel
 
         // Optionally filter by club
         if (SelectedClubId > 0)
-            query = query.Where(r => r.Event.ClubId == SelectedClubId);
+            query = query.Where(r => r.EventId != null && r.Event!.ClubId == SelectedClubId);
 
         Rounds = await query
             .OrderByDescending(r => r.CompletedAt)

@@ -35,6 +35,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<EventSponsor> EventSponsors => Set<EventSponsor>();
     public DbSet<EventWaitlistEntry> EventWaitlistEntries => Set<EventWaitlistEntry>();
     public DbSet<CourseConditionReport> CourseConditionReports => Set<CourseConditionReport>();
+    public DbSet<Message> Messages => Set<Message>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

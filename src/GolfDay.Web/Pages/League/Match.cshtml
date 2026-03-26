@@ -1,0 +1,333 @@
+@page "/League/Match/{id:int}"
+@model GolfDay.Web.Pages.League.MatchModel
+@using GolfDay.Domain.Enums
+@{
+    ViewData["Title"] = $"Match vs {Model.Opponent?.FullName}";
+    var match    = Model.Match;
+    var isPending = match.Status == MatchStatus.Scheduled || match.Status == MatchStatus.Overdue;
+    var isOverdue = match.Status == MatchStatus.Overdue;
+    var daysLeft  = (match.ScheduledDeadline.Date - DateTime.Today).Days;
+    var iProposed = match.ProposedBy == Model.CurrentUserId;
+}
+
+@section Styles {
+    <style>
+        .match-hero {
+            background: linear-gradient(135deg, #0d3349 0%, #1565c0 60%, #1976d2 100%);
+            color: white;
+            padding: 1.75rem 0;
+        }
+        .opponent-card { border-radius: 14px; }
+        .msg-bubble {
+            max-width: 78%;
+            border-radius: 16px;
+            padding: .6rem 1rem;
+            margin-bottom: .5rem;
+        }
+        .msg-me  { background: #0d6efd; color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+        .msg-opp { background: #f1f3f5; color: #212529; margin-right: auto; border-bottom-left-radius: 4px; }
+        .thread-wrap {
+            max-height: 360px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 0 0 10px 10px;
+        }
+        .thread-header { background: #f8f9fa; border-radius: 10px 10px 0 0; }
+    </style>
+}
+
+<!-- Hero -->
+<div class="match-hero">
+    <div class="container-fluid px-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="small text-white-75 mb-1">
+                    <a asp-page="/League/Details" asp-route-id="@match.LeagueSeasonId"
+                       class="text-white-75 text-decoration-none">
+                        <i class="bi bi-people me-1"></i>@match.LeagueSeason.Name
+                    </a>
+                    <i class="bi bi-chevron-right mx-1" style="font-size:.75rem"></i>
+                    Round @match.RoundNumber Match
+                </div>
+                <h1 class="fw-bold mb-1">vs @Model.Opponent.FullName</h1>
+                <div class="d-flex gap-3 flex-wrap">
+                    @if (isOverdue)
+                    {
+                        <span class="badge bg-danger fs-6 px-3">OVERDUE</span>
+                    }
+                    else if (isPending && daysLeft <= 3)
+                    {
+                        <span class="badge bg-warning text-dark fs-6 px-3">@daysLeft day@(daysLeft != 1 ? "s" : "") left</span>
+                    }
+                    else if (isPending)
+                    {
+                        <span class="badge bg-info text-dark">Due @match.ScheduledDeadline.ToString("MMM d")</span>
+                    }
+                    else if (match.Status == MatchStatus.Completed)
+                    {
+                        <span class="badge bg-success">Completed</span>
+                    }
+                    @if (match.Course != null)
+                    {
+                        <span class="text-white-75 small"><i class="bi bi-geo-alt me-1"></i>@match.Course.Name</span>
+                    }
+                </div>
+            </div>
+            <div class="col-auto">
+                <a asp-page="/League/Details" asp-route-id="@match.LeagueSeasonId"
+                   class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back to League
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+    <div class="row g-4">
+
+        <!-- LEFT: Opponent Info + Scheduling -->
+        <div class="col-lg-4">
+
+            <!-- Opponent Card -->
+            <div class="card opponent-card border-0 shadow-sm mb-3">
+                <div class="card-header bg-primary bg-opacity-10 border-0">
+                    <h6 class="fw-bold mb-0 text-primary">
+                        <i class="bi bi-person-circle me-2"></i>Your Opponent
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="display-6 fw-bold">@Model.Opponent.FullName</div>
+                        @if (Model.Opponent.HandicapIndex.HasValue)
+                        {
+                            <div class="text-muted">
+                                <i class="bi bi-flag me-1 text-success"></i>
+                                HCP @Model.Opponent.HandicapIndex.Value.ToString("F1")
+                            </div>
+                        }
+                    </div>
+
+                    <ul class="list-unstyled small mb-0">
+                        @if (!string.IsNullOrEmpty(Model.Opponent.Email))
+                        {
+                            <li class="mb-2">
+                                <i class="bi bi-envelope me-2 text-primary"></i>
+                                <a href="mailto:@Model.Opponent.Email" class="text-decoration-none">
+                                    @Model.Opponent.Email
+                                </a>
+                            </li>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Opponent.PhoneNumber))
+                        {
+                            <li class="mb-2">
+                                <i class="bi bi-telephone me-2 text-success"></i>
+                                <a href="tel:@Model.Opponent.PhoneNumber" class="text-decoration-none">
+                                    @Model.Opponent.PhoneNumber
+                                </a>
+                            </li>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Opponent.City))
+                        {
+                            <li>
+                                <i class="bi bi-geo-alt me-2 text-muted"></i>
+                                @Model.Opponent.City@(!string.IsNullOrEmpty(Model.Opponent.State) ? $", {Model.Opponent.State}" : "")
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Match Results (if completed) -->
+            @if (match.Status == MatchStatus.Completed)
+            {
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-success bg-opacity-10 border-0">
+                        <h6 class="fw-bold mb-0 text-success"><i class="bi bi-trophy me-2"></i>Result</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        @if (match.IsDraw)
+                        {
+                            <div class="badge bg-warning text-dark fs-5 px-4 py-2">Draw</div>
+                        }
+                        else if (match.WinnerId == Model.CurrentUserId)
+                        {
+                            <div class="badge bg-success fs-5 px-4 py-2">You Won!</div>
+                        }
+                        else
+                        {
+                            <div class="badge bg-danger fs-5 px-4 py-2">Opponent Won</div>
+                        }
+                        @if (!string.IsNullOrEmpty(match.ResultDescription))
+                        {
+                            <p class="text-muted small mt-2 mb-0">@match.ResultDescription</p>
+                        }
+                        @{
+                            var myGross  = Model.IsPlayer1 ? match.Player1GrossScore : match.Player2GrossScore;
+                            var oppGross = Model.IsPlayer1 ? match.Player2GrossScore : match.Player1GrossScore;
+                        }
+                        @if (myGross.HasValue || oppGross.HasValue)
+                        {
+                            <div class="mt-3 d-flex justify-content-around">
+                                <div>
+                                    <div class="fw-bold fs-4">@(myGross?.ToString() ?? "—")</div>
+                                    <div class="text-muted small">Your Gross</div>
+                                </div>
+                                <div class="text-muted align-self-center">vs</div>
+                                <div>
+                                    <div class="fw-bold fs-4">@(oppGross?.ToString() ?? "—")</div>
+                                    <div class="text-muted small">Opp. Gross</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Propose / Confirm Date (pending matches only) -->
+            @if (isPending)
+            {
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-warning bg-opacity-10 border-0">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2 text-warning"></i>Schedule Match</h6>
+                    </div>
+                    <div class="card-body">
+                        @if (match.ProposedDate.HasValue)
+                        {
+                            <div class="alert alert-info py-2 px-3 mb-3 small">
+                                <strong>Proposed:</strong> @match.ProposedDate.Value.ToString("dddd, MMMM d, yyyy")
+                                @if (iProposed)
+                                {
+                                    <span class="ms-1 text-muted">(by you — waiting for opponent)</span>
+                                }
+                                else
+                                {
+                                    <span class="ms-1 text-muted">(by @Model.Opponent.FirstName)</span>
+                                }
+                            </div>
+                            @if (!iProposed)
+                            {
+                                <form method="post" asp-page-handler="ConfirmDate" asp-route-id="@match.Id" class="mb-3">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="bi bi-check-circle me-1"></i>Confirm This Date
+                                    </button>
+                                </form>
+                            }
+                        }
+                        <form method="post" asp-page-handler="ProposeDate" asp-route-id="@match.Id">
+                            <label class="form-label small fw-semibold">
+                                @(match.ProposedDate.HasValue ? "Propose a Different Date" : "Propose a Date")
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="ProposedDate" type="date" class="form-control form-control-sm"
+                                       min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                       max="@match.ScheduledDeadline.ToString("yyyy-MM-dd")" />
+                                <button type="submit" class="btn btn-warning btn-sm">
+                                    <i class="bi bi-send me-1"></i>Propose
+                                </button>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                Deadline: @match.ScheduledDeadline.ToString("MMM d, yyyy")
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- RIGHT: Message Thread -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100" style="min-height:400px">
+                <div class="thread-header border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-chat-dots me-2 text-primary"></i>Match Chat
+                        </h5>
+                        <small class="text-muted">Coordinate your tee time, discuss the match</small>
+                    </div>
+                    @{
+                        var unreadCount = Model.Thread.Count(m => m.ToUserId == Model.CurrentUserId && !m.IsRead);
+                    }
+                    @if (unreadCount > 0)
+                    {
+                        <span class="badge bg-danger">@unreadCount new</span>
+                    }
+                </div>
+
+                <!-- Message thread -->
+                <div class="thread-wrap" id="thread">
+                    @if (!Model.Thread.Any())
+                    {
+                        <div class="text-center text-muted my-auto py-5">
+                            <i class="bi bi-chat display-4 opacity-25"></i>
+                            <p class="mt-3">No messages yet.<br/>Send the first message to start coordinating!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var msg in Model.Thread)
+                        {
+                            var isMe = msg.FromUserId == Model.CurrentUserId;
+                            <div class="d-flex flex-column @(isMe ? "align-items-end" : "align-items-start")">
+                                @if (!isMe)
+                                {
+                                    <small class="text-muted mb-1 ms-1">@msg.FromUser.FirstName</small>
+                                }
+                                <div class="msg-bubble @(isMe ? "msg-me" : "msg-opp")">
+                                    @msg.Body
+                                </div>
+                                <small class="text-muted mb-2" style="font-size:.7rem">
+                                    @msg.CreatedAt.ToLocalTime().ToString("MMM d 'at' h:mm tt")
+                                    @if (isMe && msg.IsRead)
+                                    {
+                                        <i class="bi bi-check2-all ms-1 text-info" title="Read"></i>
+                                    }
+                                </small>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Send message form -->
+                @if (isPending || match.Status == MatchStatus.Completed)
+                {
+                    <div class="card-footer bg-light border-top pt-3 pb-3 px-3">
+                        <form method="post" asp-page-handler="SendMessage" asp-route-id="@match.Id"
+                              class="d-flex gap-2" id="msgForm">
+                            <textarea asp-for="MessageBody" class="form-control" rows="2"
+                                      placeholder="Type a message… (e.g. 'How's Saturday at 9am?')"
+                                      maxlength="2000"
+                                      style="resize:none; border-radius:10px;"></textarea>
+                            <button type="submit" class="btn btn-primary align-self-end px-3">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Scroll thread to bottom on load
+        const thread = document.getElementById('thread');
+        if (thread) thread.scrollTop = thread.scrollHeight;
+
+        // Submit on Ctrl+Enter
+        const ta = document.querySelector('#msgForm textarea');
+        if (ta) {
+            ta.addEventListener('keydown', e => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('msgForm').submit();
+                }
+            });
+        }
+    </script>
+}

@@ -1,0 +1,252 @@
+@page
+@model GolfDay.Web.Pages.Rounds.EnterModel
+@{
+    ViewData["Title"] = "Post a Round";
+}
+
+@section Styles {
+    <style>
+        .enter-hero {
+            background: linear-gradient(135deg, #1a3c2e 0%, #2d6a4f 50%, #52b788 100%);
+            color: white;
+            padding: 1.75rem 0;
+        }
+        .stat-group {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 1.25rem;
+            background: #f8f9fa;
+        }
+        .stat-group legend {
+            float: none;
+            width: auto;
+            font-size: .85rem;
+            font-weight: 600;
+            color: #495057;
+            padding: 0 .5rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .score-input { font-size: 1.5rem; font-weight: 700; text-align: center; }
+    </style>
+}
+
+<!-- Hero -->
+<div class="enter-hero">
+    <div class="container-fluid px-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <h1 class="fw-bold mb-1">
+                    <i class="bi bi-pencil-square me-2"></i>Post a Round
+                </h1>
+                <p class="mb-0 text-white-75">Record a casual or practice round to your history</p>
+            </div>
+            <div class="col-auto">
+                <a asp-page="/Player/Rounds" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>My Rounds
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <!-- Course & Date -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-success bg-opacity-10 border-0">
+                        <h5 class="mb-0 fw-bold text-success">
+                            <i class="bi bi-geo-alt me-2"></i>Where & When
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="Input.CourseId" class="form-label fw-semibold"></label>
+                            @if (Model.Courses.Any())
+                            {
+                                <select asp-for="Input.CourseId" class="form-select form-select-lg">
+                                    <option value="">— Select a course —</option>
+                                    @{
+                                        string? lastGroup = null;
+                                    }
+                                    @foreach (var course in Model.Courses)
+                                    {
+                                        var group = course.Club.Name;
+                                        if (group != lastGroup)
+                                        {
+                                            if (lastGroup != null) { <text></optgroup></text> }
+                                            <optgroup label="@group">
+                                            lastGroup = group;
+                                        }
+                                        <option value="@course.Id">@course.Name (@course.NumberOfHoles holes, Par @course.ParTotal)</option>
+                                    }
+                                    @if (lastGroup != null) { <text></optgroup></text> }
+                                </select>
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    No courses available. Join a club first to see courses.
+                                </div>
+                            }
+                            <span asp-validation-for="Input.CourseId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-0">
+                            <label asp-for="Input.PlayedDate" class="form-label fw-semibold"></label>
+                            <input asp-for="Input.PlayedDate" type="date" class="form-control"
+                                   max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="Input.PlayedDate" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Score -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-primary bg-opacity-10 border-0">
+                        <h5 class="mb-0 fw-bold text-primary">
+                            <i class="bi bi-123 me-2"></i>Score
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-sm-4">
+                                <label asp-for="Input.GrossScore" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.GrossScore" type="number" min="18" max="200"
+                                       class="form-control score-input" placeholder="e.g. 82" />
+                                <span asp-validation-for="Input.GrossScore" class="text-danger small"></span>
+                            </div>
+                            <div class="col-sm-4">
+                                <label asp-for="Input.NetScore" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.NetScore" type="number" min="18" max="200"
+                                       class="form-control score-input" placeholder="optional" />
+                                <span asp-validation-for="Input.NetScore" class="text-danger small"></span>
+                            </div>
+                            <div class="col-sm-4">
+                                <label asp-for="Input.HandicapUsed" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.HandicapUsed" type="number" step="0.1" min="0" max="54"
+                                       class="form-control score-input" placeholder="e.g. 8.4" />
+                                <span asp-validation-for="Input.HandicapUsed" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optional Stats -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-info bg-opacity-10 border-0">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h5 class="mb-0 fw-bold text-info">
+                                <i class="bi bi-bar-chart me-2"></i>Round Stats
+                                <small class="fw-normal text-muted ms-2" style="font-size:.8rem">(optional)</small>
+                            </h5>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="collapse" data-bs-target="#statsPanel">
+                                <i class="bi bi-chevron-down me-1"></i>Show/Hide
+                            </button>
+                        </div>
+                    </div>
+                    <div id="statsPanel" class="collapse show">
+                        <div class="card-body">
+                            <fieldset class="stat-group mb-3">
+                                <legend>Greens &amp; Fairways</legend>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label asp-for="Input.FairwaysHit" class="form-label small mb-1"></label>
+                                        <input asp-for="Input.FairwaysHit" type="number" min="0" max="18"
+                                               class="form-control form-control-sm text-center" />
+                                    </div>
+                                    <div class="col-6">
+                                        <label asp-for="Input.GreensInRegulation" class="form-label small mb-1"></label>
+                                        <input asp-for="Input.GreensInRegulation" type="number" min="0" max="18"
+                                               class="form-control form-control-sm text-center" />
+                                    </div>
+                                    <div class="col-6">
+                                        <label asp-for="Input.TotalPutts" class="form-label small mb-1"></label>
+                                        <input asp-for="Input.TotalPutts" type="number" min="0" max="100"
+                                               class="form-control form-control-sm text-center" />
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="stat-group">
+                                <legend>Hole Results</legend>
+                                <div class="row g-2">
+                                    <div class="col-6 col-sm-3">
+                                        <label asp-for="Input.Birdies" class="form-label small mb-1">
+                                            <span class="text-danger">Birdies</span>
+                                        </label>
+                                        <input asp-for="Input.Birdies" type="number" min="0" max="18"
+                                               class="form-control form-control-sm text-center" />
+                                    </div>
+                                    <div class="col-6 col-sm-3">
+                                        <label asp-for="Input.Pars" class="form-label small mb-1">
+                                            <span class="text-success">Pars</span>
+                                        </label>
+                                        <input asp-for="Input.Pars" type="number" min="0" max="18"
+                                               class="form-control form-control-sm text-center" />
+                                    </div>
+                                    <div class="col-6 col-sm-3">
+                                        <label asp-for="Input.Bogeys" class="form-label small mb-1">Bogeys</label>
+                                        <input asp-for="Input.Bogeys" type="number" min="0" max="18"
+                                               class="form-control form-control-sm text-center" />
+                                    </div>
+                                    <div class="col-6 col-sm-3">
+                                        <label asp-for="Input.DoubleBogeys" class="form-label small mb-1">Double+</label>
+                                        <input asp-for="Input.DoubleBogeys" type="number" min="0" max="18"
+                                               class="form-control form-control-sm text-center" />
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <label asp-for="Input.Notes" class="form-label fw-semibold">
+                            <i class="bi bi-chat-left-text me-1"></i>Notes
+                            <small class="fw-normal text-muted">(optional)</small>
+                        </label>
+                        <textarea asp-for="Input.Notes" class="form-control" rows="2"
+                                  placeholder="Conditions, memorable holes, playing partners…"></textarea>
+                        <span asp-validation-for="Input.Notes" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
+                    <a asp-page="/Player/Rounds" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-success px-5">
+                        <i class="bi bi-check-lg me-2"></i>Save Round
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Auto-calculate net score when gross and handicap change
+        const gross = document.querySelector('[name="Input.GrossScore"]');
+        const hcp   = document.querySelector('[name="Input.HandicapUsed"]');
+        const net   = document.querySelector('[name="Input.NetScore"]');
+
+        function calcNet() {
+            const g = parseInt(gross.value);
+            const h = parseFloat(hcp.value);
+            if (!isNaN(g) && !isNaN(h) && net.value === '') {
+                net.value = Math.round(g - h);
+            }
+        }
+        gross.addEventListener('change', calcNet);
+        hcp.addEventListener('change', calcNet);
+    </script>
+}
