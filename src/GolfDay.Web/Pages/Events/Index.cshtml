@@ -16,14 +16,14 @@
     <!-- Filter Tabs -->
     <ul class="nav nav-tabs mb-4" id="eventTabs">
         <li class="nav-item">
-            <a class="nav-link @(Model.StatusFilter == "" ? "active" : "")"
+            <a class="nav-link @(Model.Filter == "" ? "active" : "")"
                asp-page="/Events/Index" asp-route-filter="">
                 <i class="bi bi-list-ul me-1"></i>All
                 <span class="badge bg-secondary ms-1">@Model.AllCount</span>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @(Model.StatusFilter == "today" ? "active" : "")"
+            <a class="nav-link @(Model.Filter == "today" ? "active" : "")"
                asp-page="/Events/Index" asp-route-filter="today">
                 <i class="bi bi-calendar-day me-1"></i>Today
                 @if (Model.TodayCount > 0)
@@ -33,7 +33,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @(Model.StatusFilter == "live" ? "active" : "")"
+            <a class="nav-link @(Model.Filter == "live" ? "active" : "")"
                asp-page="/Events/Index" asp-route-filter="live">
                 <i class="bi bi-broadcast me-1 text-danger"></i>Live
                 @if (Model.LiveCount > 0)
@@ -43,13 +43,13 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @(Model.StatusFilter == "upcoming" ? "active" : "")"
+            <a class="nav-link @(Model.Filter == "upcoming" ? "active" : "")"
                asp-page="/Events/Index" asp-route-filter="upcoming">
                 <i class="bi bi-calendar-arrow-down me-1"></i>Upcoming
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @(Model.StatusFilter == "completed" ? "active" : "")"
+            <a class="nav-link @(Model.Filter == "completed" ? "active" : "")"
                asp-page="/Events/Index" asp-route-filter="completed">
                 <i class="bi bi-check2-circle me-1"></i>Completed
             </a>

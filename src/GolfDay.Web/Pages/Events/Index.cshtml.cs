@@ -16,8 +16,8 @@ public class EventsIndexModel : PageModel
         _db = db;
     }
 
-    [BindProperty(SupportsGet = true)]
-    public string StatusFilter { get; set; } = string.Empty;
+    [BindProperty(SupportsGet = true, Name = "filter")]
+    public string Filter { get; set; } = string.Empty;
 
     public List<GolfEvent> Events { get; set; } = new();
     public List<GolfEvent> LiveEvents { get; set; } = new();
@@ -47,7 +47,7 @@ public class EventsIndexModel : PageModel
         LiveCount = allEvents.Count(e => e.Status == EventStatus.InProgress);
         LiveEvents = allEvents.Where(e => e.Status == EventStatus.InProgress).ToList();
 
-        Events = StatusFilter?.ToLower() switch
+        Events = Filter?.ToLower() switch
         {
             "today" => allEvents.Where(e => e.EventDate.Date == today).ToList(),
             "live" => allEvents.Where(e => e.Status == EventStatus.InProgress).ToList(),

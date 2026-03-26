@@ -13,8 +13,8 @@ public class LeagueIndexModel : PageModel
 
     public LeagueIndexModel(IApplicationDbContext db) => _db = db;
 
-    [BindProperty(SupportsGet = true)]
-    public string StatusFilter { get; set; } = string.Empty;
+    [BindProperty(SupportsGet = true, Name = "filter")]
+    public string Filter { get; set; } = string.Empty;
 
     public List<LeagueSeason> Leagues { get; set; } = new();
 
@@ -37,7 +37,7 @@ public class LeagueIndexModel : PageModel
         ActiveCount       = all.Count(l => l.Status == LeagueStatus.Active);
         RegistrationCount = all.Count(l => l.Status == LeagueStatus.Registration);
 
-        Leagues = StatusFilter?.ToLower() switch
+        Leagues = Filter?.ToLower() switch
         {
             "active"       => all.Where(l => l.Status == LeagueStatus.Active).ToList(),
             "registration" => all.Where(l => l.Status == LeagueStatus.Registration).ToList(),

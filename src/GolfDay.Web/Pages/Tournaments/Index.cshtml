@@ -38,14 +38,14 @@
     <!-- Filter Tabs -->
     <ul class="nav nav-tabs mb-4">
         <li class="nav-item">
-            <a class="nav-link @(Model.StatusFilter == "" ? "active" : "")"
+            <a class="nav-link @(Model.Filter == "" ? "active" : "")"
                asp-page="/Tournaments/Index" asp-route-filter="">
                 <i class="bi bi-list-ul me-1"></i>All
                 <span class="badge bg-secondary ms-1">@Model.AllCount</span>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @(Model.StatusFilter == "registration" ? "active" : "")"
+            <a class="nav-link @(Model.Filter == "registration" ? "active" : "")"
                asp-page="/Tournaments/Index" asp-route-filter="registration">
                 <i class="bi bi-pencil-square me-1"></i>Registration Open
                 @if (Model.RegistrationCount > 0)
@@ -55,7 +55,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @(Model.StatusFilter == "active" ? "active" : "")"
+            <a class="nav-link @(Model.Filter == "active" ? "active" : "")"
                asp-page="/Tournaments/Index" asp-route-filter="active">
                 <i class="bi bi-broadcast me-1 text-danger"></i>Active
                 @if (Model.ActiveCount > 0)
@@ -65,7 +65,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @(Model.StatusFilter == "completed" ? "active" : "")"
+            <a class="nav-link @(Model.Filter == "completed" ? "active" : "")"
                asp-page="/Tournaments/Index" asp-route-filter="completed">
                 <i class="bi bi-check2-circle me-1"></i>Completed
             </a>

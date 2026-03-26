@@ -64,7 +64,7 @@ SELECT
     u."UserId",
     0,   -- ClubRole.Member
     2,   -- MembershipType.Full
-    2,   -- MembershipStatus.Active
+    1,   -- MembershipStatus.Active
     TRUE,
     NOW() - (u."MonthsAgo" || ' months')::INTERVAL,
     TRUE, TRUE, TRUE,
@@ -202,7 +202,7 @@ SELECT
     gc."Id",
     r."UserId",
     1,
-    3,   -- Completed
+    2,   -- RoundStatus.Completed
     r."Gross", r."Net", r."Hcp",
     r."Putts", r."FW", 14, r."GIR", 18,
     r."Birdies", r."Pars", r."Bogeys", r."Doubles",

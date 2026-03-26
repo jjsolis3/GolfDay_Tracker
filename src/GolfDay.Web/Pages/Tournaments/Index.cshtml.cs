@@ -13,8 +13,8 @@ public class TournamentsIndexModel : PageModel
 
     public TournamentsIndexModel(IApplicationDbContext db) => _db = db;
 
-    [BindProperty(SupportsGet = true)]
-    public string StatusFilter { get; set; } = string.Empty;
+    [BindProperty(SupportsGet = true, Name = "filter")]
+    public string Filter { get; set; } = string.Empty;
 
     public List<Tournament> Tournaments { get; set; } = new();
 
@@ -36,7 +36,7 @@ public class TournamentsIndexModel : PageModel
         RegistrationCount = all.Count(t => t.Status == TournamentStatus.Registration);
         ActiveCount       = all.Count(t => t.Status == TournamentStatus.Active);
 
-        Tournaments = StatusFilter?.ToLower() switch
+        Tournaments = Filter?.ToLower() switch
         {
             "registration" => all.Where(t => t.Status == TournamentStatus.Registration).ToList(),
             "active"       => all.Where(t => t.Status == TournamentStatus.Active).ToList(),
