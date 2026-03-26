@@ -168,19 +168,26 @@
                                         ? (double)round.GreensInRegulation.Value / round.TotalGreens.Value * 100 : (double?)null;
 
                         <tr class="round-row"
-                            onclick="window.location='/Events/Details/@round.EventId'"
-                            title="View event details">
+                            onclick="@(round.EventId.HasValue ? $"window.location='/Events/Details/{round.EventId}'" : "return false")"
+                            title="@(round.EventId.HasValue ? "View event details" : "")">
                             <td class="ps-3 text-nowrap">
-                                @(round.CompletedAt?.ToString("MMM d, yyyy") ?? round.Event.EventDate.ToString("MMM d, yyyy"))
+                                @(round.CompletedAt?.ToString("MMM d, yyyy") ?? round.Event?.EventDate.ToString("MMM d, yyyy") ?? "—")
                             </td>
                             <td>
-                                <a asp-page="/Events/Details" asp-route-id="@round.EventId"
-                                   class="text-decoration-none fw-medium"
-                                   onclick="event.stopPropagation()">
-                                    @round.Event.Name
-                                </a>
-                                <br />
-                                <small class="text-muted">@round.Event.Club.Name</small>
+                                @if (round.Event != null)
+                                {
+                                    <a asp-page="/Events/Details" asp-route-id="@round.EventId"
+                                       class="text-decoration-none fw-medium"
+                                       onclick="event.stopPropagation()">
+                                        @round.Event.Name
+                                    </a>
+                                    <br />
+                                    <small class="text-muted">@round.Event.Club.Name</small>
+                                }
+                                else
+                                {
+                                    <span class="fw-medium">Casual Round</span>
+                                }
                             </td>
                             <td class="text-muted small d-none d-md-table-cell">
                                 @round.Course?.Name

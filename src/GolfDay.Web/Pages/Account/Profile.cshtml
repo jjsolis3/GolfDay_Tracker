@@ -116,8 +116,8 @@
                                 {
                                     <tr>
                                         <td>@round.CompletedAt?.ToString("MMM d")</td>
-                                        <td>@round.Event.Name</td>
-                                        <td>@round.Course.Name</td>
+                                        <td>@(round.Event?.Name ?? "Casual Round")</td>
+                                        <td>@round.Course?.Name</td>
                                         <td class="fw-bold">@round.GrossScore</td>
                                         <td>
                                             @{
