@@ -1232,6 +1232,18 @@ namespace GolfDay.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsAttested")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("AttestedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("AttestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AttestationNotes")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CourseId");

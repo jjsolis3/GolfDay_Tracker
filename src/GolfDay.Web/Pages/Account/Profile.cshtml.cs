@@ -56,22 +56,11 @@ public class ProfileModel : PageModel
         var user = await _userManager.GetUserAsync(HttpContext.User);
         if (user == null) return RedirectToPage("/Account/Login");
 
-        User = await _db.ClubMemberships
+        User = user;
+        User.ClubMemberships = await _db.ClubMemberships
             .Include(m => m.Club)
             .Where(m => m.UserId == user.Id && m.IsActive)
-            .Select(m => m.User)
-            .Include(u => u.ClubMemberships)
-            .ThenInclude(m => m.Club)
-            .FirstOrDefaultAsync() ?? user;
-
-        if (User.ClubMemberships == null)
-        {
-            User = user;
-            User.ClubMemberships = await _db.ClubMemberships
-                .Include(m => m.Club)
-                .Where(m => m.UserId == user.Id && m.IsActive)
-                .ToListAsync();
-        }
+            .ToListAsync();
 
         RecentRounds = await _db.Rounds
             .Include(r => r.Event)
