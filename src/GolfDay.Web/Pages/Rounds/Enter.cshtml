@@ -66,25 +66,27 @@
                     <div class="card-body">
                         <div class="mb-3">
                             <label asp-for="Input.CourseId" class="form-label fw-semibold"></label>
+
                             @if (Model.Courses.Any())
                             {
+                                var courseGroups = Model.Courses
+                                .GroupBy(c => c.Club.Name)
+                                .OrderBy(g => g.Key);
+
                                 <select asp-for="Input.CourseId" class="form-select form-select-lg">
                                     <option value="">— Select a course —</option>
-                                    @{
-                                        string? lastGroup = null;
-                                    }
-                                    @foreach (var course in Model.Courses)
+
+                                    @foreach (var clubGroup in courseGroups)
                                     {
-                                        var group = course.Club.Name;
-                                        if (group != lastGroup)
-                                        {
-                                            if (lastGroup != null) { <text></optgroup></text> }
-                                            <optgroup label="@group">
-                                            lastGroup = group;
-                                        }
-                                        <option value="@course.Id">@course.Name (@course.NumberOfHoles holes, Par @course.ParTotal)</option>
+                                        <optgroup label="@clubGroup.Key">
+                                            @foreach (var course in clubGroup)
+                                            {
+                                                <option value="@course.Id">
+                                                    @course.Name (@course.NumberOfHoles holes, Par @course.ParTotal)
+                                                </option>
+                                            }
+                                        </optgroup>
                                     }
-                                    @if (lastGroup != null) { <text></optgroup></text> }
                                 </select>
                             }
                             else
@@ -94,6 +96,7 @@
                                     No courses available. Join a club first to see courses.
                                 </div>
                             }
+
                             <span asp-validation-for="Input.CourseId" class="text-danger small"></span>
                         </div>
 
@@ -236,17 +239,21 @@
     <script>
         // Auto-calculate net score when gross and handicap change
         const gross = document.querySelector('[name="Input.GrossScore"]');
-        const hcp   = document.querySelector('[name="Input.HandicapUsed"]');
-        const net   = document.querySelector('[name="Input.NetScore"]');
+        const hcp = document.querySelector('[name="Input.HandicapUsed"]');
+        const net = document.querySelector('[name="Input.NetScore"]');
 
         function calcNet() {
+            if (!gross || !hcp || !net) return;
+
             const g = parseInt(gross.value);
             const h = parseFloat(hcp.value);
+
             if (!isNaN(g) && !isNaN(h) && net.value === '') {
                 net.value = Math.round(g - h);
             }
         }
-        gross.addEventListener('change', calcNet);
-        hcp.addEventListener('change', calcNet);
+
+        if (gross) gross.addEventListener('change', calcNet);
+        if (hcp) hcp.addEventListener('change', calcNet);
     </script>
 }
