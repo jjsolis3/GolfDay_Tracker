@@ -21,7 +21,8 @@ public class GolfCourseConfiguration : IEntityTypeConfiguration<GolfCourse>
         builder.HasOne(c => c.Club)
                .WithMany(cl => cl.Courses)
                .HasForeignKey(c => c.ClubId)
-               .OnDelete(DeleteBehavior.Cascade);
+               .IsRequired(false)
+               .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasMany(c => c.Holes)
                .WithOne(h => h.Course)

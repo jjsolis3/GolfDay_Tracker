@@ -1,0 +1,138 @@
+@page
+@model GolfDay.Web.Areas.Admin.Pages.Courses.ImportModel
+@{
+    ViewData["Title"] = "Import Courses from CSV";
+    // uses main layout via _ViewStart
+}
+
+<div class="mb-4">
+    <a asp-page="Index" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left me-1"></i>Back to Courses
+    </a>
+    <h2 class="fw-bold mt-1"><i class="bi bi-upload me-2 text-success"></i>Import Courses from CSV</h2>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <form method="post" enctype="multipart/form-data">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-success bg-opacity-10 border-0 fw-semibold text-success">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i>Upload File
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="CsvFile" class="form-label fw-semibold">CSV File</label>
+                        <input asp-for="CsvFile" type="file" accept=".csv,.txt" class="form-control" required />
+                        <span asp-validation-for="CsvFile" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="DefaultClubId" class="form-label fw-semibold">
+                            Assign to Club <small class="fw-normal text-muted">(optional)</small>
+                        </label>
+                        <select asp-for="DefaultClubId" asp-items="Model.ClubOptions" class="form-select">
+                            <option value="">— Public / No Club —</option>
+                        </select>
+                        <div class="form-text">All imported courses will be assigned to this club, or left public if blank.</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsPublic" class="form-check-input" role="switch" />
+                            <label asp-for="IsPublic" class="form-check-label">Mark all imported courses as Public</label>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="PreviewOnly" value="true" class="btn btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>Preview Import
+                        </button>
+                        <button type="submit" name="PreviewOnly" value="false" class="btn btn-success"
+                                onclick="return confirm('Import all rows? This will create new course records.')">
+                            <i class="bi bi-cloud-upload me-1"></i>Import Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        @if (Model.Errors.Any())
+        {
+            <div class="alert alert-danger">
+                <strong>Errors found:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach (var err in Model.Errors)
+                    {
+                        <li>@err</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        @if (Model.Preview.Any())
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white fw-semibold">
+                    Preview — @Model.Preview.Count row@(Model.Preview.Count != 1 ? "s" : "") to import
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>City / State</th>
+                                <th class="text-center">Holes</th>
+                                <th class="text-center">Par</th>
+                                <th class="text-center">Rating</th>
+                                <th class="text-center">Slope</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.Preview)
+                            {
+                                <tr>
+                                    <td>@row.Name</td>
+                                    <td class="small">@row.City@(!string.IsNullOrEmpty(row.State) ? $", {row.State}" : "")</td>
+                                    <td class="text-center">@row.Holes</td>
+                                    <td class="text-center">@row.Par</td>
+                                    <td class="text-center">@(row.Rating?.ToString("F1") ?? "—")</td>
+                                    <td class="text-center">@(row.Slope?.ToString("F0") ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-info bg-opacity-10 border-0 fw-semibold text-info">
+                <i class="bi bi-question-circle me-1"></i>CSV Format
+            </div>
+            <div class="card-body">
+                <p class="small mb-2">The first row must be a header row. Supported column names (case-insensitive):</p>
+                <table class="table table-sm table-bordered small mb-3">
+                    <thead class="table-light">
+                        <tr><th>Column</th><th>Required?</th><th>Default</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>Name</code></td><td>Yes</td><td></td></tr>
+                        <tr><td><code>City</code></td><td>No</td><td></td></tr>
+                        <tr><td><code>State</code></td><td>No</td><td></td></tr>
+                        <tr><td><code>NumberOfHoles</code></td><td>No</td><td>18</td></tr>
+                        <tr><td><code>ParTotal</code></td><td>No</td><td>72</td></tr>
+                        <tr><td><code>CourseRating</code></td><td>No</td><td></td></tr>
+                        <tr><td><code>SlopeRating</code></td><td>No</td><td></td></tr>
+                        <tr><td><code>Address</code></td><td>No</td><td></td></tr>
+                        <tr><td><code>Phone</code></td><td>No</td><td></td></tr>
+                        <tr><td><code>Website</code></td><td>No</td><td></td></tr>
+                    </tbody>
+                </table>
+                <p class="small text-muted mb-1">Example CSV:</p>
+                <pre class="bg-light p-2 rounded small" style="font-size:.75rem">Name,City,State,NumberOfHoles,ParTotal,CourseRating,SlopeRating
+Pebble Beach,Pebble Beach,CA,18,72,75.5,145
+Torrey Pines (South),La Jolla,CA,18,72,75.5,145
+Erin Hills,Hartford,WI,18,72,76.7,148</pre>
+            </div>
+        </div>
+    </div>
+</div>

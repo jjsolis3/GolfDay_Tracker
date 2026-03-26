@@ -1,6 +1,5 @@
 using GolfDay.Application.Common.Interfaces;
 using GolfDay.Infrastructure;
-using GolfDay.Web.Services;
 using GolfDay.Infrastructure.Data;
 using GolfDay.Web.Hubs;
 using GolfDay.Web.Services;
@@ -41,11 +40,19 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
 // Authorization policies
+// Role hierarchy:
+//   Admin     – DevAdmin / system-wide access (courses, users, all clubs)
+//   ClubAdmin – (formerly ClubManager) manages their own club, events, leagues
+//   Member    – authenticated club member
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin", "ClubManager"));
-    options.AddPolicy("ClubManagerPolicy", policy => policy.RequireRole("ClubManager", "Admin"));
-    options.AddPolicy("MemberPolicy", policy => policy.RequireAuthenticatedUser());
+    // Whole admin area: Admins + ClubAdmins (ClubAdmin pages further scope by club ownership)
+    options.AddPolicy("AdminPolicy",      policy => policy.RequireRole("Admin", "ClubAdmin", "ClubManager"));
+    // Course / global management: DevAdmin only
+    options.AddPolicy("DevAdminPolicy",   policy => policy.RequireRole("Admin"));
+    // Club-specific management: ClubAdmins + Admins
+    options.AddPolicy("ClubAdminPolicy",  policy => policy.RequireRole("Admin", "ClubAdmin", "ClubManager"));
+    options.AddPolicy("MemberPolicy",     policy => policy.RequireAuthenticatedUser());
 });
 
 // Cookie auth settings

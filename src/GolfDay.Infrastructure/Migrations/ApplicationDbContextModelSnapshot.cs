@@ -504,7 +504,7 @@ namespace GolfDay.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int>("ClubId")
+                    b.Property<int?>("ClubId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Country")
@@ -528,7 +528,7 @@ namespace GolfDay.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsHomeClubCourse")
+                    b.Property<bool>("IsPublic")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Name")
@@ -2477,8 +2477,7 @@ namespace GolfDay.Infrastructure.Migrations
                     b.HasOne("GolfDay.Domain.Entities.Club", "Club")
                         .WithMany("Courses")
                         .HasForeignKey("ClubId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Club");
                 });

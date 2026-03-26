@@ -157,11 +157,12 @@ public class EnterModel : PageModel
             .Select(m => m.ClubId)
             .ToListAsync();
 
+        // Show all active courses. Member-club courses appear first, then public/other courses.
         Courses = await _db.GolfCourses
             .Include(c => c.Club)
-            .Where(c => c.IsActive && (memberClubIds.Contains(c.ClubId) || c.Club.IsPublic))
-            .OrderBy(c => memberClubIds.Contains(c.ClubId) ? 0 : 1)
-            .ThenBy(c => c.Club.Name)
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.ClubId.HasValue && memberClubIds.Contains(c.ClubId!.Value) ? 0 : 1)
+            .ThenBy(c => c.Club != null ? c.Club.Name : "Public")
             .ThenBy(c => c.Name)
             .ToListAsync();
     }

@@ -70,8 +70,9 @@
                             @if (Model.Courses.Any())
                             {
                                 var courseGroups = Model.Courses
-                                .GroupBy(c => c.Club.Name)
-                                .OrderBy(g => g.Key);
+                                .GroupBy(c => c.Club?.Name ?? "Public Courses")
+                                .OrderBy(g => g.Key == "Public Courses" ? 1 : 0)
+                                .ThenBy(g => g.Key);
 
                                 <select asp-for="Input.CourseId" class="form-select form-select-lg">
                                     <option value="">— Select a course —</option>
