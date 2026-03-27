@@ -16,7 +16,7 @@ public class ApiSearchModel : PageModel
     // ── Input ────────────────────────────────────────────────────────────────
     [BindProperty(SupportsGet = true)] public string? Query { get; set; }
     [BindProperty(SupportsGet = true)] public string? State { get; set; }
-    [BindProperty(SupportsGet = true)] public new int Page  { get; set; } = 1;
+    [BindProperty(SupportsGet = true)] public int CurrentPage { get; set; } = 1;
 
     // ── Output ───────────────────────────────────────────────────────────────
     public List<CourseApiResult> Results    { get; private set; } = new();
@@ -35,7 +35,7 @@ public class ApiSearchModel : PageModel
         if (string.IsNullOrWhiteSpace(Query)) return;
 
         HasSearched = true;
-        (Results, ApiError) = await _api.SearchAsync(Query.Trim(), State, Page);
+        (Results, ApiError) = await _api.SearchAsync(Query.Trim(), State, CurrentPage);
     }
 
     /// Called when the admin clicks "Import" on a result + selects a tee.
