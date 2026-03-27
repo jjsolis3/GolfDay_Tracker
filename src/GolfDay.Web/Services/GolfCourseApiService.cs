@@ -143,6 +143,7 @@ public class GolfCourseApiService : IGolfCourseApiService
             }
 
             var json = await resp.Content.ReadAsStringAsync();
+            _log.LogDebug("Golf Course API raw response: {Json}", json);
             var courses = ParseCourses(json);
 
             // Apply region filter (extra safety if the API doesn't honour state param).
@@ -184,26 +185,23 @@ public class GolfCourseApiService : IGolfCourseApiService
     }
 
     // ── JSON parsing ─────────────────────────────────────────────────────────
-    // The Golf Course API (v1) returns:
-    //   { "data": { "courses": [...], "total": N, "per_page": 20, "page": 1 } }
-    // Some versions may return courses at the root level; we handle both.
+    // Handles multiple response shapes from golfcourseapi.com:
+    //   { "courses": [...] }
+    //   { "data": { "courses": [...] } }
+    //   { "courses": { "total_results": N, "courses": [...] } }  (nested)
+    //   top-level array [...]
     private static List<CourseApiResult> ParseCourses(string json)
     {
         using var doc  = JsonDocument.Parse(json);
         var root       = doc.RootElement;
         var results    = new List<CourseApiResult>();
 
-        // Locate the courses array
-        JsonElement coursesEl;
-        if (root.TryGetProperty("data", out var data) &&
-            data.TryGetProperty("courses", out coursesEl))
-        { /* nested under data */ }
-        else if (root.TryGetProperty("courses", out coursesEl))
-        { /* top-level */ }
-        else
-            return results; // unexpected shape
+        // Find the element that is the actual array of course objects
+        var coursesEl = FindCoursesArray(root);
+        if (coursesEl is null || coursesEl.Value.ValueKind != JsonValueKind.Array)
+            return results;
 
-        foreach (var c in coursesEl.EnumerateArray())
+        foreach (var c in coursesEl.Value.EnumerateArray())
         {
             var result = new CourseApiResult();
 
@@ -229,19 +227,37 @@ public class GolfCourseApiService : IGolfCourseApiService
             if (c.TryGetProperty("num_holes",        out var holes)) result.Holes = holes.GetInt32();
             else if (c.TryGetProperty("number_holes", out holes))    result.Holes = holes.GetInt32();
 
-            // Tees
+            // Tees — API may return an Array OR an Object keyed by tee name
             if (c.TryGetProperty("tees", out var tees))
             {
-                foreach (var tee in tees.EnumerateArray())
+                if (tees.ValueKind == JsonValueKind.Array)
                 {
-                    var info = new CourseTeeInfo
+                    // [ { "tee_name": "Blue", "course_rating": 72.4, ... }, ... ]
+                    foreach (var tee in tees.EnumerateArray())
                     {
-                        TeeName      = Str(tee, "tee_name") ?? Str(tee, "name") ?? "Unknown",
-                        CourseRating = Dbl(tee, "course_rating"),
-                        SlopeRating  = Dbl(tee, "slope_rating"),
-                        Par          = Int(tee, "par") ?? 72,
-                    };
-                    result.Tees.Add(info);
+                        result.Tees.Add(new CourseTeeInfo
+                        {
+                            TeeName      = Str(tee, "tee_name") ?? Str(tee, "name") ?? "Unknown",
+                            CourseRating = Dbl(tee, "course_rating"),
+                            SlopeRating  = Dbl(tee, "slope_rating"),
+                            Par          = Int(tee, "par") ?? 72,
+                        });
+                    }
+                }
+                else if (tees.ValueKind == JsonValueKind.Object)
+                {
+                    // { "Blue": { "course_rating": 72.4, "slope_rating": 131, "par": 72 }, ... }
+                    foreach (var prop in tees.EnumerateObject())
+                    {
+                        var tee = prop.Value;
+                        result.Tees.Add(new CourseTeeInfo
+                        {
+                            TeeName      = Str(tee, "tee_name") ?? Str(tee, "name") ?? prop.Name,
+                            CourseRating = Dbl(tee, "course_rating"),
+                            SlopeRating  = Dbl(tee, "slope_rating"),
+                            Par          = Int(tee, "par") ?? 72,
+                        });
+                    }
                 }
             }
 
@@ -250,6 +266,38 @@ public class GolfCourseApiService : IGolfCourseApiService
         }
 
         return results;
+    }
+
+    // Locates the JSON array containing course objects, handling several response shapes:
+    //   top-level array:                    [{ ... }, ...]
+    //   { "courses": [...] }
+    //   { "data": { "courses": [...] } }
+    //   { "courses": { "courses": [...] } } (nested pagination wrapper)
+    private static JsonElement? FindCoursesArray(JsonElement root)
+    {
+        if (root.ValueKind == JsonValueKind.Array)
+            return root;
+
+        foreach (var key in new[] { "courses", "data", "results", "items" })
+        {
+            if (!root.TryGetProperty(key, out var child)) continue;
+
+            if (child.ValueKind == JsonValueKind.Array)
+                return child;
+
+            // One level of nesting (e.g. { "data": { "courses": [...] } })
+            if (child.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var innerKey in new[] { "courses", "results", "items", "data" })
+                {
+                    if (child.TryGetProperty(innerKey, out var inner) &&
+                        inner.ValueKind == JsonValueKind.Array)
+                        return inner;
+                }
+            }
+        }
+
+        return null;
     }
 
     // ── JSON helpers ──────────────────────────────────────────────────────────
