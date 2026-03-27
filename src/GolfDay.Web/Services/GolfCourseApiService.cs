@@ -146,12 +146,29 @@ public class GolfCourseApiService : IGolfCourseApiService
             var json = await resp.Content.ReadAsStringAsync();
             var courses = ParseCourses(json);
 
-            // Apply region filter (extra safety if the API doesn't honour state param)
+            // Apply region filter (extra safety if the API doesn't honour state param).
+            // AllowedStates may contain codes ("CA") or full names ("California") — normalise
+            // both for comparison against API result states (which are typically codes).
             if (_opts.AllowedStates.Count > 0)
+            {
+                var allowedCodes = _opts.AllowedStates
+                    .Select(s => s.Trim().ToUpperInvariant())
+                    .ToHashSet();
+
+                // Also resolve full names → codes using the same list as the search page
+                var nameToCode = StateNameToCode();
+                foreach (var entry in _opts.AllowedStates)
+                {
+                    var norm = entry.Trim().ToUpperInvariant();
+                    if (nameToCode.TryGetValue(norm, out var code))
+                        allowedCodes.Add(code);
+                }
+
                 courses = courses
                     .Where(c => c.State is null ||
-                                _opts.AllowedStates.Contains(c.State.ToUpperInvariant()))
+                                allowedCodes.Contains(c.State.Trim().ToUpperInvariant()))
                     .ToList();
+            }
 
             return (courses, null);
         }
@@ -253,4 +270,25 @@ public class GolfCourseApiService : IGolfCourseApiService
         (v.ValueKind == JsonValueKind.Number)
             ? v.GetInt32()
             : null;
+
+    // Maps uppercased full state names → 2-letter codes for region filtering.
+    private static Dictionary<string, string> StateNameToCode() => new()
+    {
+        {"ALABAMA","AL"},{"ALASKA","AK"},{"ARIZONA","AZ"},{"ARKANSAS","AR"},
+        {"CALIFORNIA","CA"},{"COLORADO","CO"},{"CONNECTICUT","CT"},{"DELAWARE","DE"},
+        {"FLORIDA","FL"},{"GEORGIA","GA"},{"HAWAII","HI"},{"IDAHO","ID"},
+        {"ILLINOIS","IL"},{"INDIANA","IN"},{"IOWA","IA"},{"KANSAS","KS"},
+        {"KENTUCKY","KY"},{"LOUISIANA","LA"},{"MAINE","ME"},{"MARYLAND","MD"},
+        {"MASSACHUSETTS","MA"},{"MICHIGAN","MI"},{"MINNESOTA","MN"},{"MISSISSIPPI","MS"},
+        {"MISSOURI","MO"},{"MONTANA","MT"},{"NEBRASKA","NE"},{"NEVADA","NV"},
+        {"NEW HAMPSHIRE","NH"},{"NEW JERSEY","NJ"},{"NEW MEXICO","NM"},{"NEW YORK","NY"},
+        {"NORTH CAROLINA","NC"},{"NORTH DAKOTA","ND"},{"OHIO","OH"},{"OKLAHOMA","OK"},
+        {"OREGON","OR"},{"PENNSYLVANIA","PA"},{"RHODE ISLAND","RI"},{"SOUTH CAROLINA","SC"},
+        {"SOUTH DAKOTA","SD"},{"TENNESSEE","TN"},{"TEXAS","TX"},{"UTAH","UT"},
+        {"VERMONT","VT"},{"VIRGINIA","VA"},{"WASHINGTON","WA"},{"WEST VIRGINIA","WV"},
+        {"WISCONSIN","WI"},{"WYOMING","WY"},
+        {"ALBERTA","AB"},{"BRITISH COLUMBIA","BC"},{"MANITOBA","MB"},
+        {"NEW BRUNSWICK","NB"},{"NEWFOUNDLAND","NL"},{"NOVA SCOTIA","NS"},
+        {"ONTARIO","ON"},{"PEI","PE"},{"QUEBEC","QC"},{"SASKATCHEWAN","SK"},
+    };
 }

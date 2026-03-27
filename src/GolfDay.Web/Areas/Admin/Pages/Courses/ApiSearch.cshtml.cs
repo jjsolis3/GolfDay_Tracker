@@ -86,12 +86,15 @@ public class ApiSearchModel : PageModel
     private void BuildStateOptions()
     {
         var all = AllUsStates();
+
+        // Normalise AllowedStates: accept both codes ("CA") and full names ("California")
         var allowed = _api.AllowedStates
-            .Select(s => s.ToUpperInvariant())
+            .Select(s => s.Trim().ToUpperInvariant())
             .ToHashSet();
 
         StateOptions = allowed.Count > 0
-            ? all.Where(s => allowed.Contains(s.Code)).ToList()
+            ? all.Where(s => allowed.Contains(s.Code.ToUpperInvariant()) ||
+                             allowed.Contains(s.Name.ToUpperInvariant())).ToList()
             : all;
     }
 
