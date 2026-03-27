@@ -26,6 +26,14 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IClubAccessService, ClubAccessService>();
 
+// Golf Course API integration
+builder.Services.Configure<GolfCourseApiOptions>(
+    builder.Configuration.GetSection(GolfCourseApiOptions.Section));
+builder.Services.AddHttpClient<IGolfCourseApiService, GolfCourseApiService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
 // Razor Pages + Controllers (for API endpoints)
 builder.Services.AddRazorPages(options =>
 {

@@ -12,6 +12,24 @@
     <h2 class="fw-bold mt-1"><i class="bi bi-map me-2 text-success"></i>@ViewData["Title"]</h2>
 </div>
 
+@if (Model.ApiSource is not null)
+{
+    <div class="alert alert-success d-flex align-items-start gap-3 mb-4">
+        <i class="bi bi-cloud-check-fill fs-4 mt-1"></i>
+        <div>
+            <strong>Pre-filled from Golf Course API</strong> —
+            <em>@Model.ApiSource.Name</em>
+            @if (!string.IsNullOrEmpty(Model.ApiSource.TeeUsed))
+            {
+                <span class="text-muted">using <strong>@Model.ApiSource.TeeUsed</strong> tees for rating/slope.</span>
+            }
+            <div class="small text-muted mt-1">
+                Review the data below, adjust anything if needed, then click <strong>Create Course</strong>.
+            </div>
+        </div>
+    </div>
+}
+
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <form method="post">

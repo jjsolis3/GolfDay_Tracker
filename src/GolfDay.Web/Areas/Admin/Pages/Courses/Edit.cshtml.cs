@@ -1,11 +1,13 @@
 using GolfDay.Application.Common.Interfaces;
 using GolfDay.Domain.Entities;
+using GolfDay.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace GolfDay.Web.Areas.Admin.Pages.Courses;
 
@@ -22,6 +24,9 @@ public class EditModel : PageModel
 
     public SelectList ClubOptions { get; set; } = null!;
     public bool IsNew => Id is null;
+
+    /// Set when the form was pre-filled from the Golf Course API search.
+    public CourseApiImportData? ApiSource { get; private set; }
 
     public class InputModel
     {
@@ -54,6 +59,33 @@ public class EditModel : PageModel
     public async Task<IActionResult> OnGetAsync()
     {
         await LoadClubsAsync();
+
+        // Pre-populate from API import if TempData carries an ApiCourse payload
+        if (Id is null && TempData.TryGetValue("ApiCourse", out var raw) && raw is string json)
+        {
+            ApiSource = JsonSerializer.Deserialize<CourseApiImportData>(json);
+            if (ApiSource is not null)
+            {
+                Input = new InputModel
+                {
+                    Name          = ApiSource.Name,
+                    Address       = ApiSource.Address,
+                    City          = ApiSource.City,
+                    State         = ApiSource.State,
+                    ZipCode       = ApiSource.Zip,
+                    Country       = ApiSource.Country ?? "USA",
+                    Phone         = ApiSource.Phone,
+                    Website       = ApiSource.Website,
+                    NumberOfHoles = ApiSource.Holes,
+                    ParTotal      = ApiSource.Par,
+                    CourseRating  = ApiSource.CourseRating,
+                    SlopeRating   = ApiSource.SlopeRating,
+                    IsActive      = true,
+                    IsPublic      = true,
+                };
+                return Page();
+            }
+        }
 
         if (Id is null) return Page();
 

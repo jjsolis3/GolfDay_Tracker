@@ -1,0 +1,215 @@
+@page
+@model GolfDay.Web.Areas.Admin.Pages.Courses.ApiSearchModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Search Golf Course API";
+}
+
+<div class="mb-4">
+    <a asp-page="Index" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left me-1"></i>Back to Courses
+    </a>
+    <h2 class="fw-bold mt-1">
+        <i class="bi bi-cloud-download me-2 text-success"></i>Search Golf Course API
+    </h2>
+    <p class="text-muted mb-0">Search thegolfcourseapi.com and import course data directly into GolfDay Tracker.</p>
+</div>
+
+@if (!Model.IsConfigured)
+{
+    <div class="alert alert-warning d-flex align-items-start gap-3">
+        <i class="bi bi-exclamation-triangle-fill fs-4 text-warning mt-1"></i>
+        <div>
+            <strong>API key not configured.</strong>
+            Add your key from <a href="https://www.thegolfcourseapi.com" target="_blank">thegolfcourseapi.com</a>
+            to <code>appsettings.json</code>:
+            <pre class="mt-2 mb-0 bg-light p-2 rounded small">"GolfCourseApi": {
+  "ApiKey": "YOUR_KEY_HERE",
+  "AllowedStates": ["TX", "NM"]   // optional region filter
+}</pre>
+        </div>
+    </div>
+}
+
+<!-- Search Form -->
+<form method="get" class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label asp-for="Query" class="form-label fw-semibold">Course Name</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input asp-for="Query" class="form-control" placeholder="e.g. Pebble Beach, TPC…"
+                           autofocus />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="State" class="form-label fw-semibold">
+                    State / Province
+                    @if (Model.StateOptions.Count < 55)
+                    {
+                        <span class="badge bg-info text-dark fw-normal ms-1" title="Filtered by AllowedStates config">Region</span>
+                    }
+                </label>
+                <select asp-for="State" class="form-select">
+                    <option value="">— All —</option>
+                    @foreach (var (code, name) in Model.StateOptions)
+                    {
+                        <option value="@code" selected="@(Model.State == code)">@code — @name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100" @(!Model.IsConfigured ? "disabled" : "")>
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.Query))
+            {
+                <div class="col-auto">
+                    <a asp-page="ApiSearch" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            }
+        </div>
+    </div>
+</form>
+
+@if (Model.ApiError != null)
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-circle me-1"></i>@Model.ApiError
+    </div>
+}
+
+@if (Model.HasSearched && Model.Results.Count == 0 && Model.ApiError == null)
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-1"></i>
+        No courses found for <strong>@Model.Query</strong>@(!string.IsNullOrEmpty(Model.State) ? $" in {Model.State}" : "").
+        Try a broader search term.
+    </div>
+}
+
+@if (Model.Results.Count > 0)
+{
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="text-muted small">@Model.Results.Count result@(Model.Results.Count != 1 ? "s" : "") returned</span>
+        <span class="text-muted small fst-italic">Select a tee box then click Import to pre-fill the course form.</span>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Course</th>
+                        <th>Location</th>
+                        <th class="text-center">Holes</th>
+                        <th>Tee / Rating-Slope</th>
+                        <th class="text-center">Import</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var (course, ri) in Model.Results.Select((c, i) => (c, i)))
+                    {
+                        var courseJson = JsonSerializer.Serialize(course);
+                        var defaultTeeIdx = course.Tees
+                            .Select((t, i) => (t, i))
+                            .OrderBy(x => x.t.TeeName.ToLower() switch {
+                                "white" => 0, "blue"  => 1, "silver" => 2,
+                                "gold"  => 3, "red"   => 4, _        => 5
+                            })
+                            .Select(x => x.i)
+                            .FirstOrDefault();
+
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@course.Name</div>
+                                @if (!string.IsNullOrEmpty(course.Website))
+                                {
+                                    <a href="@course.Website" target="_blank" class="text-muted small text-decoration-none">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i>Website
+                                    </a>
+                                }
+                            </td>
+                            <td class="small">
+                                <div>@course.City@(!string.IsNullOrEmpty(course.State) ? $", {course.State}" : "")</div>
+                                @if (!string.IsNullOrEmpty(course.Address))
+                                {
+                                    <div class="text-muted">@course.Address</div>
+                                }
+                                @if (!string.IsNullOrEmpty(course.Phone))
+                                {
+                                    <div class="text-muted"><i class="bi bi-telephone me-1"></i>@course.Phone</div>
+                                }
+                            </td>
+                            <td class="text-center fw-bold">@course.Holes</td>
+                            <td style="min-width:240px">
+                                @if (course.Tees.Count > 0)
+                                {
+                                    <select class="form-select form-select-sm tee-select" id="tee-@ri">
+                                        @foreach (var (tee, ti) in course.Tees.Select((t, i) => (t, i)))
+                                        {
+                                            <option value="@ti" selected="@(ti == defaultTeeIdx)">
+                                                @tee.Label
+                                            </option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic small">No tee data</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <form method="post" asp-page-handler="PreImport">
+                                    <input type="hidden" name="courseJson" value="@courseJson" />
+                                    <input type="hidden" name="teeIndex" class="tee-index-input" value="@defaultTeeIdx" />
+                                    <button type="submit" class="btn btn-sm btn-success" title="Import into GolfDay Tracker">
+                                        <i class="bi bi-cloud-download me-1"></i>Import
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.Results.Count >= 20)
+    {
+        <div class="d-flex justify-content-end mt-3 gap-2">
+            @if (Model.Page > 1)
+            {
+                <a asp-page="ApiSearch"
+                   asp-route-query="@Model.Query"
+                   asp-route-state="@Model.State"
+                   asp-route-page="@(Model.Page - 1)"
+                   class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-chevron-left"></i> Prev
+                </a>
+            }
+            <a asp-page="ApiSearch"
+               asp-route-query="@Model.Query"
+               asp-route-state="@Model.State"
+               asp-route-page="@(Model.Page + 1)"
+               class="btn btn-outline-primary btn-sm">
+                Next <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+    }
+}
+
+@section Scripts {
+<script>
+// Keep each row's hidden tee-index input in sync with its tee dropdown
+document.querySelectorAll('.tee-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+        const form = sel.closest('tr').querySelector('.tee-index-input');
+        if (form) form.value = sel.value;
+    });
+});
+</script>
+}
