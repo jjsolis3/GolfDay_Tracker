@@ -170,6 +170,17 @@ public class GolfCourseApiService : IGolfCourseApiService
                     .ToList();
             }
 
+            // Apply the user-selected state filter.  The API does not honour the
+            // state= query param server-side, so we must filter client-side.
+            if (!string.IsNullOrWhiteSpace(state))
+            {
+                var stateUpper = state.Trim().ToUpperInvariant();
+                courses = courses
+                    .Where(c => c.State is null ||
+                                c.State.Trim().ToUpperInvariant() == stateUpper)
+                    .ToList();
+            }
+
             return (courses, null);
         }
         catch (HttpRequestException ex)
