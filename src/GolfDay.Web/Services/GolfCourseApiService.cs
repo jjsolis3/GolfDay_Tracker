@@ -240,23 +240,40 @@ public class GolfCourseApiService : IGolfCourseApiService
                             TeeName      = Str(tee, "tee_name") ?? Str(tee, "name") ?? "Unknown",
                             CourseRating = Dbl(tee, "course_rating"),
                             SlopeRating  = Dbl(tee, "slope_rating"),
-                            Par          = Int(tee, "par") ?? 72,
+                            Par          = Int(tee, "par_total") ?? Int(tee, "par") ?? 72,
                         });
                     }
                 }
                 else if (tees.ValueKind == JsonValueKind.Object)
                 {
-                    // { "Blue": { "course_rating": 72.4, "slope_rating": 131, "par": 72 }, ... }
                     foreach (var prop in tees.EnumerateObject())
                     {
-                        var tee = prop.Value;
-                        result.Tees.Add(new CourseTeeInfo
+                        var val = prop.Value;
+                        if (val.ValueKind == JsonValueKind.Array)
                         {
-                            TeeName      = Str(tee, "tee_name") ?? Str(tee, "name") ?? prop.Name,
-                            CourseRating = Dbl(tee, "course_rating"),
-                            SlopeRating  = Dbl(tee, "slope_rating"),
-                            Par          = Int(tee, "par") ?? 72,
-                        });
+                            // { "male": [ { "tee_name": "Blue", ... }, ... ], "female": [...] }
+                            foreach (var tee in val.EnumerateArray())
+                            {
+                                result.Tees.Add(new CourseTeeInfo
+                                {
+                                    TeeName      = Str(tee, "tee_name") ?? Str(tee, "name") ?? "Unknown",
+                                    CourseRating = Dbl(tee, "course_rating"),
+                                    SlopeRating  = Dbl(tee, "slope_rating"),
+                                    Par          = Int(tee, "par_total") ?? Int(tee, "par") ?? 72,
+                                });
+                            }
+                        }
+                        else if (val.ValueKind == JsonValueKind.Object)
+                        {
+                            // { "Blue": { "course_rating": 72.4, "slope_rating": 131 }, ... }
+                            result.Tees.Add(new CourseTeeInfo
+                            {
+                                TeeName      = Str(val, "tee_name") ?? Str(val, "name") ?? prop.Name,
+                                CourseRating = Dbl(val, "course_rating"),
+                                SlopeRating  = Dbl(val, "slope_rating"),
+                                Par          = Int(val, "par_total") ?? Int(val, "par") ?? 72,
+                            });
+                        }
                     }
                 }
             }
