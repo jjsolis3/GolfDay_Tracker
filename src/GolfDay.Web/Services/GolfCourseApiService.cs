@@ -117,7 +117,7 @@ public class GolfCourseApiService : IGolfCourseApiService
         // Build query string
         var qs = new List<string>
         {
-            $"search={Uri.EscapeDataString(query)}",
+            $"search_query={Uri.EscapeDataString(query)}",
             $"per_page={perPage}",
             $"page={page}"
         };
@@ -126,6 +126,7 @@ public class GolfCourseApiService : IGolfCourseApiService
             qs.Add($"state={Uri.EscapeDataString(state.Trim())}");
 
         var url = $"{_opts.BaseUrl.TrimEnd('/')}/courses?{string.Join('&', qs)}";
+        _log.LogDebug("Golf Course API request URL: {Url}", url);
 
         try
         {
