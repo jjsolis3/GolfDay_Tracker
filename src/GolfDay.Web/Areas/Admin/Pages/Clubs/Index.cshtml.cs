@@ -62,8 +62,8 @@ public class IndexModel : PageModel
             .ToDictionaryAsync(x => x.ClubId, x => x.Count);
 
         CourseCounts = await _db.GolfCourses
-            .Where(c => clubIds.Contains(c.ClubId) && c.IsActive)
-            .GroupBy(c => c.ClubId)
+            .Where(c => c.ClubId.HasValue && clubIds.Contains(c.ClubId!.Value) && c.IsActive)
+            .GroupBy(c => c.ClubId!.Value)
             .Select(g => new { ClubId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.ClubId, x => x.Count);
     }

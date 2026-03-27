@@ -80,7 +80,7 @@ public class CreateModel : PageModel
         if (Input.CourseId.HasValue)
         {
             var courseExists = await _db.GolfCourses
-                .AnyAsync(c => c.Id == Input.CourseId.Value && c.ClubId == Input.ClubId);
+                .AnyAsync(c => c.Id == Input.CourseId.Value && c.IsActive);
             if (!courseExists) Input.CourseId = null;
         }
 
