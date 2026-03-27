@@ -80,7 +80,7 @@
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center flex-shrink-0"
                      style="width:56px;height:56px;">
-                    @if (round.User?.ProfilePictureUrl != null)
+                    @if (round.User is not null && round.User.ProfilePictureUrl != null)
                     {
                         <img src="@round.User.ProfilePictureUrl"
                              class="rounded-circle" style="width:56px;height:56px;object-fit:cover;"

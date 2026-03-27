@@ -121,7 +121,7 @@
                                         <td class="fw-bold">@round.GrossScore</td>
                                         <td>
                                             @{
-                                                var toPar = round.GrossScore - round.Course.ParTotal;
+                                                var toPar = round.GrossScore - (round.Course?.ParTotal ?? 72);
                                             }
                                             <span class="@(toPar < 0 ? "text-danger" : toPar == 0 ? "text-success" : "text-secondary")">
                                                 @(toPar > 0 ? $"+{toPar}" : toPar.ToString())

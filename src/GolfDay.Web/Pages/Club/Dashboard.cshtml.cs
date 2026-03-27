@@ -51,7 +51,7 @@ public class DashboardModel : PageModel
             .CountAsync(t => t.ClubId == Club.Id && t.StartDate.Year == thisYear && t.Status != TournamentStatus.Cancelled);
 
         HoleInOnesThisYear = await _db.HoleScores
-            .Where(h => h.IsHoleInOne && h.Round.Event.ClubId == Club.Id && h.CreatedAt.Year == thisYear)
+            .Where(h => h.IsHoleInOne && h.Round.EventId != null && h.Round.Event!.ClubId == Club!.Id && h.CreatedAt.Year == thisYear)
             .CountAsync();
 
         UpcomingEvents = await _db.GolfEvents

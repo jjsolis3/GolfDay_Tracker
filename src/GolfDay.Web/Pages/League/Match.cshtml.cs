@@ -43,7 +43,7 @@ public class MatchModel : PageModel
         CurrentUserId = user.Id;
         Me = user;
 
-        Match = await _db.LeagueMatches
+        var leagueMatch = await _db.LeagueMatches
             .Include(m => m.Player1)
             .Include(m => m.Player2)
             .Include(m => m.Course)
@@ -51,13 +51,14 @@ public class MatchModel : PageModel
                 .ThenInclude(ls => ls.Club)
             .FirstOrDefaultAsync(m => m.Id == id);
 
-        if (Match == null) return NotFound();
+        if (leagueMatch == null) return NotFound();
+        Match = leagueMatch;
 
         if (Match.Player1Id != user.Id && Match.Player2Id != user.Id)
             return Forbid();
 
         IsPlayer1 = Match.Player1Id == user.Id;
-        Opponent  = IsPlayer1 ? Match.Player2 : Match.Player1;
+        Opponent  = IsPlayer1 ? Match.Player2! : Match.Player1!;
 
         Thread = await _db.Messages
             .Include(m => m.FromUser)

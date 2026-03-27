@@ -20,7 +20,7 @@ public class ProfileModel : PageModel
         _db = db;
     }
 
-    public ApplicationUser User { get; set; } = null!;
+    public new ApplicationUser User { get; set; } = null!;
     public List<Round> RecentRounds { get; set; } = new();
 
     [BindProperty]

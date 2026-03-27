@@ -16,7 +16,7 @@ public class ApiSearchModel : PageModel
     // ── Input ────────────────────────────────────────────────────────────────
     [BindProperty(SupportsGet = true)] public string? Query { get; set; }
     [BindProperty(SupportsGet = true)] public string? State { get; set; }
-    [BindProperty(SupportsGet = true)] public int     Page  { get; set; } = 1;
+    [BindProperty(SupportsGet = true)] public new int Page  { get; set; } = 1;
 
     // ── Output ───────────────────────────────────────────────────────────────
     public List<CourseApiResult> Results    { get; private set; } = new();
