@@ -100,6 +100,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Log.Fatal(ex, "Database migration/seeding failed.");
+        throw; // surface the error so the app doesn't start with an inconsistent schema
     }
 }
 

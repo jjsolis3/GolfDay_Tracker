@@ -10,77 +10,103 @@ public partial class MakeCourseIndependent : Migration
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        // Drop the old required FK
-        migrationBuilder.DropForeignKey(
-            name: "FK_GolfCourses_Clubs_ClubId",
-            table: "GolfCourses");
+        // Use raw SQL with IF EXISTS / IF NOT EXISTS so this migration is
+        // idempotent and won't fail if the DB is already in a partial state.
 
-        // Remove IsHomeClubCourse (replaced by IsPublic)
-        migrationBuilder.DropColumn(
-            name: "IsHomeClubCourse",
-            table: "GolfCourses");
+        // 1. Drop the required FK (IF EXISTS – Supabase may name it differently)
+        migrationBuilder.Sql(@"
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints
+                    WHERE constraint_name = 'FK_GolfCourses_Clubs_ClubId'
+                      AND table_name = 'GolfCourses'
+                ) THEN
+                    ALTER TABLE ""GolfCourses""
+                        DROP CONSTRAINT ""FK_GolfCourses_Clubs_ClubId"";
+                END IF;
+            END $$;
+        ");
 
-        // Make ClubId nullable
-        migrationBuilder.AlterColumn<int>(
-            name: "ClubId",
-            table: "GolfCourses",
-            type: "integer",
-            nullable: true,
-            oldClrType: typeof(int),
-            oldType: "integer");
+        // 2. Drop old IsHomeClubCourse column (IF EXISTS)
+        migrationBuilder.Sql(@"
+            ALTER TABLE ""GolfCourses""
+                DROP COLUMN IF EXISTS ""IsHomeClubCourse"";
+        ");
 
-        // Add IsPublic (default true so existing courses are visible)
-        migrationBuilder.AddColumn<bool>(
-            name: "IsPublic",
-            table: "GolfCourses",
-            type: "boolean",
-            nullable: false,
-            defaultValue: true);
+        // 3. Make ClubId nullable (safe to run even if already nullable)
+        migrationBuilder.Sql(@"
+            ALTER TABLE ""GolfCourses""
+                ALTER COLUMN ""ClubId"" DROP NOT NULL;
+        ");
 
-        // Re-add FK with SetNull on club delete
-        migrationBuilder.AddForeignKey(
-            name: "FK_GolfCourses_Clubs_ClubId",
-            table: "GolfCourses",
-            column: "ClubId",
-            principalTable: "Clubs",
-            principalColumn: "Id",
-            onDelete: ReferentialAction.SetNull);
+        // 4. Add IsPublic (IF NOT EXISTS – won't fail if column already added)
+        migrationBuilder.Sql(@"
+            ALTER TABLE ""GolfCourses""
+                ADD COLUMN IF NOT EXISTS ""IsPublic"" boolean NOT NULL DEFAULT true;
+        ");
+
+        // 5. Re-add FK with ON DELETE SET NULL (IF NOT EXISTS guard via DO block)
+        migrationBuilder.Sql(@"
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints
+                    WHERE constraint_name = 'FK_GolfCourses_Clubs_ClubId'
+                      AND table_name = 'GolfCourses'
+                ) THEN
+                    ALTER TABLE ""GolfCourses""
+                        ADD CONSTRAINT ""FK_GolfCourses_Clubs_ClubId""
+                        FOREIGN KEY (""ClubId"")
+                        REFERENCES ""Clubs""(""Id"")
+                        ON DELETE SET NULL;
+                END IF;
+            END $$;
+        ");
     }
 
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropForeignKey(
-            name: "FK_GolfCourses_Clubs_ClubId",
-            table: "GolfCourses");
+        migrationBuilder.Sql(@"
+            ALTER TABLE ""GolfCourses""
+                DROP CONSTRAINT IF EXISTS ""FK_GolfCourses_Clubs_ClubId"";
+        ");
 
-        migrationBuilder.DropColumn(
-            name: "IsPublic",
-            table: "GolfCourses");
+        migrationBuilder.Sql(@"
+            ALTER TABLE ""GolfCourses""
+                DROP COLUMN IF EXISTS ""IsPublic"";
+        ");
 
-        migrationBuilder.AlterColumn<int>(
-            name: "ClubId",
-            table: "GolfCourses",
-            type: "integer",
-            nullable: false,
-            defaultValue: 0,
-            oldClrType: typeof(int),
-            oldType: "integer",
-            oldNullable: true);
+        migrationBuilder.Sql(@"
+            UPDATE ""GolfCourses"" SET ""ClubId"" = 0 WHERE ""ClubId"" IS NULL;
+        ");
 
-        migrationBuilder.AddColumn<bool>(
-            name: "IsHomeClubCourse",
-            table: "GolfCourses",
-            type: "boolean",
-            nullable: false,
-            defaultValue: false);
+        migrationBuilder.Sql(@"
+            ALTER TABLE ""GolfCourses""
+                ALTER COLUMN ""ClubId"" SET NOT NULL;
+        ");
 
-        migrationBuilder.AddForeignKey(
-            name: "FK_GolfCourses_Clubs_ClubId",
-            table: "GolfCourses",
-            column: "ClubId",
-            principalTable: "Clubs",
-            principalColumn: "Id",
-            onDelete: ReferentialAction.Cascade);
+        migrationBuilder.Sql(@"
+            ALTER TABLE ""GolfCourses""
+                ADD COLUMN IF NOT EXISTS ""IsHomeClubCourse"" boolean NOT NULL DEFAULT false;
+        ");
+
+        migrationBuilder.Sql(@"
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints
+                    WHERE constraint_name = 'FK_GolfCourses_Clubs_ClubId'
+                      AND table_name = 'GolfCourses'
+                ) THEN
+                    ALTER TABLE ""GolfCourses""
+                        ADD CONSTRAINT ""FK_GolfCourses_Clubs_ClubId""
+                        FOREIGN KEY (""ClubId"")
+                        REFERENCES ""Clubs""(""Id"")
+                        ON DELETE CASCADE;
+                END IF;
+            END $$;
+        ");
     }
 }
