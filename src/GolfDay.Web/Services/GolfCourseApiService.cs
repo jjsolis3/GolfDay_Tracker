@@ -81,9 +81,7 @@ public interface IGolfCourseApiService
 
     Task<(List<CourseApiResult> Courses, string? Error)> SearchAsync(
         string query,
-        string? state  = null,
-        int    page    = 1,
-        int    perPage = 20);
+        string? state = null);
 }
 
 public class GolfCourseApiService : IGolfCourseApiService
@@ -107,25 +105,13 @@ public class GolfCourseApiService : IGolfCourseApiService
 
     public async Task<(List<CourseApiResult> Courses, string? Error)> SearchAsync(
         string query,
-        string? state  = null,
-        int    page    = 1,
-        int    perPage = 20)
+        string? state = null)
     {
         if (!IsConfigured)
             return (new(), "Golf Course API key is not configured. Add it under GolfCourseApi:ApiKey in appsettings.");
 
-        // Build query string
-        var qs = new List<string>
-        {
-            $"search_query={Uri.EscapeDataString(query)}",
-            $"per_page={perPage}",
-            $"page={page}"
-        };
-
-        if (!string.IsNullOrWhiteSpace(state))
-            qs.Add($"state={Uri.EscapeDataString(state.Trim())}");
-
-        var url = $"{_opts.BaseUrl.TrimEnd('/')}/courses?{string.Join('&', qs)}";
+        // /v1/search only accepts search_query — no pagination or state params
+        var url = $"{_opts.BaseUrl.TrimEnd('/')}/search?search_query={Uri.EscapeDataString(query)}";
         _log.LogDebug("Golf Course API request URL: {Url}", url);
 
         try
