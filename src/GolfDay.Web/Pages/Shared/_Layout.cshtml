@@ -42,7 +42,9 @@
                         {
                             _isMember = true;
                         }
-                        bool _showClubFeatures = !User.Identity!.IsAuthenticated || _isMember;
+                        // Only club members and admins see club-specific nav items.
+                        // Unauthenticated visitors and logged-in non-members see only Sign In / Join Free.
+                        bool _showClubFeatures = _isMember;
                     }
                     <ul class="navbar-nav me-auto">
                         @if (_showClubFeatures)

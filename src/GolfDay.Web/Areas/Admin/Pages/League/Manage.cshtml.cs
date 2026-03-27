@@ -210,7 +210,10 @@ public class ManageModel : PageModel
 
         match.Player1NetScore = player1NetScore;
         match.Player2NetScore = player2NetScore;
-        match.PlayedDate = playedDate ?? DateTime.UtcNow;
+        // HTML type="date" produces Kind=Unspecified; tag it as UTC explicitly.
+        match.PlayedDate = playedDate.HasValue
+            ? DateTime.SpecifyKind(playedDate.Value, DateTimeKind.Utc)
+            : DateTime.UtcNow;
         match.Notes = resultNotes;
         match.Status = MatchStatus.Completed;
         match.UpdatedAt = DateTime.UtcNow;
