@@ -13,7 +13,7 @@ public class GolfCourseApiOptions
     public string ApiKey { get; set; } = string.Empty;
 
     /// <summary>Base URL – override only if the provider changes versions.</summary>
-    public string BaseUrl { get; set; } = "https://api.thegolfcourseapi.com/v1";
+    public string BaseUrl { get; set; } = "https://api.golfcourseapi.com/v1";
 
     /// <summary>
     /// Restrict searches to these US state abbreviations (e.g. ["TX","NM"]).
@@ -130,9 +130,8 @@ public class GolfCourseApiService : IGolfCourseApiService
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Get, url);
-            req.Headers.Add("x-api-key", _opts.ApiKey);
-            // Some versions use Authorization: Bearer instead
-            // req.Headers.Authorization = new("Bearer", _opts.ApiKey);
+            // Golf Course API uses "Authorization: Key {apiKey}" (per activation email)
+            req.Headers.Add("Authorization", $"Key {_opts.ApiKey}");
 
             using var resp = await _http.SendAsync(req);
 
