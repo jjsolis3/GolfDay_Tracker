@@ -24,6 +24,15 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // HTTP Context accessor (needed for current user service)
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IClubAccessService, ClubAccessService>();
+
+// Golf Course API integration
+builder.Services.Configure<GolfCourseApiOptions>(
+    builder.Configuration.GetSection(GolfCourseApiOptions.Section));
+builder.Services.AddHttpClient<IGolfCourseApiService, GolfCourseApiService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 
 // Razor Pages + Controllers (for API endpoints)
 builder.Services.AddRazorPages(options =>
@@ -39,11 +48,19 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
 // Authorization policies
+// Role hierarchy:
+//   Admin     – DevAdmin / system-wide access (courses, users, all clubs)
+//   ClubAdmin – (formerly ClubManager) manages their own club, events, leagues
+//   Member    – authenticated club member
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin", "ClubManager"));
-    options.AddPolicy("ClubManagerPolicy", policy => policy.RequireRole("ClubManager", "Admin"));
-    options.AddPolicy("MemberPolicy", policy => policy.RequireAuthenticatedUser());
+    // Whole admin area: Admins + ClubAdmins (ClubAdmin pages further scope by club ownership)
+    options.AddPolicy("AdminPolicy",      policy => policy.RequireRole("Admin", "ClubAdmin", "ClubManager"));
+    // Course / global management: DevAdmin only
+    options.AddPolicy("DevAdminPolicy",   policy => policy.RequireRole("Admin"));
+    // Club-specific management: ClubAdmins + Admins
+    options.AddPolicy("ClubAdminPolicy",  policy => policy.RequireRole("Admin", "ClubAdmin", "ClubManager"));
+    options.AddPolicy("MemberPolicy",     policy => policy.RequireAuthenticatedUser());
 });
 
 // Cookie auth settings
@@ -83,6 +100,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Log.Fatal(ex, "Database migration/seeding failed.");
+        throw; // surface the error so the app doesn't start with an inconsistent schema
     }
 }
 
@@ -105,6 +123,39 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Club membership gate — authenticated non-members are redirected to /Club/Join
+// when they try to access club-specific features.
+app.Use(async (context, next) =>
+{
+    var user = context.User;
+    if (user.Identity?.IsAuthenticated == true
+        && !user.IsInRole("Admin")
+        && !user.IsInRole("ClubManager"))
+    {
+        var path = context.Request.Path.Value ?? string.Empty;
+        var lower = path.ToLowerInvariant();
+
+        var isGated =
+            lower.StartsWith("/events") ||
+            lower.StartsWith("/league") ||
+            lower.StartsWith("/tournaments") ||
+            lower.StartsWith("/club/leaderboard") ||
+            lower.StartsWith("/teetime");
+
+        if (isGated)
+        {
+            var svc    = context.RequestServices.GetRequiredService<IClubAccessService>();
+            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userId != null && !await svc.HasActiveMembershipAsync(userId))
+            {
+                context.Response.Redirect("/Club/Join");
+                return;
+            }
+        }
+    }
+    await next();
+});
 
 app.MapRazorPages();
 app.MapControllers();

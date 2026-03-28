@@ -1,0 +1,199 @@
+@page
+@model GolfDay.Web.Areas.Admin.Pages.Courses.ApiSearchModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Search Golf Course API";
+}
+
+<div class="mb-4">
+    <a asp-page="Index" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left me-1"></i>Back to Courses
+    </a>
+    <h2 class="fw-bold mt-1">
+        <i class="bi bi-cloud-download me-2 text-success"></i>Search Golf Course API
+    </h2>
+    <p class="text-muted mb-0">Search thegolfcourseapi.com and import course data directly into GolfDay Tracker.</p>
+</div>
+
+@if (!Model.IsConfigured)
+{
+    <div class="alert alert-warning d-flex align-items-start gap-3">
+        <i class="bi bi-exclamation-triangle-fill fs-4 text-warning mt-1"></i>
+        <div>
+            <strong>API key not configured.</strong>
+            Add your key from <a href="https://www.thegolfcourseapi.com" target="_blank">thegolfcourseapi.com</a>
+            to <code>appsettings.json</code>:
+            <pre class="mt-2 mb-0 bg-light p-2 rounded small">"GolfCourseApi": {
+  "ApiKey": "YOUR_KEY_HERE",
+  "AllowedStates": ["TX", "NM"]   // optional region filter
+}</pre>
+        </div>
+    </div>
+}
+
+<!-- Search Form -->
+<form method="get" class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label asp-for="Query" class="form-label fw-semibold">Course Name</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input asp-for="Query" class="form-control" placeholder="e.g. Pebble Beach, TPC…"
+                           autofocus />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="State" class="form-label fw-semibold">
+                    State / Province
+                    @if (Model.StateOptions.Count < 55)
+                    {
+                        <span class="badge bg-info text-dark fw-normal ms-1" title="Filtered by AllowedStates config">Region</span>
+                    }
+                </label>
+                <select asp-for="State" class="form-select">
+                    <option value="">— All —</option>
+                    @foreach (var (code, name) in Model.StateOptions)
+                    {
+                        <option value="@code" selected="@(Model.State == code)">@code — @name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100" @(!Model.IsConfigured ? "disabled" : "")>
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.Query))
+            {
+                <div class="col-auto">
+                    <a asp-page="ApiSearch" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            }
+        </div>
+    </div>
+</form>
+
+@if (Model.ApiError != null)
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-circle me-1"></i>@Model.ApiError
+    </div>
+}
+
+@if (Model.HasSearched && Model.Results.Count == 0 && Model.ApiError == null)
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-1"></i>
+        No courses found for <strong>@Model.Query</strong>@(!string.IsNullOrEmpty(Model.State) ? $" in {Model.State}" : "").
+        Try a broader search term.
+    </div>
+}
+
+@if (Model.Results.Count > 0)
+{
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="text-muted small">@Model.Results.Count result@(Model.Results.Count != 1 ? "s" : "") returned</span>
+        <span class="text-muted small fst-italic">Check the tee boxes you want to import, then click Import.</span>
+    </div>
+
+    <div class="accordion" id="courseAccordion">
+        @foreach (var (course, ri) in Model.Results.Select((c, i) => (c, i)))
+        {
+            var courseJson = JsonSerializer.Serialize(course);
+            var collapseId = $"course-{ri}";
+
+            <div class="card border-0 shadow-sm mb-2">
+                <!-- Course header row -->
+                <div class="card-body py-2 px-3 d-flex align-items-center gap-3">
+                    <!-- Expand toggle (only when there are tees) -->
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none text-muted"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#@collapseId"
+                            aria-expanded="@(course.Tees.Count > 0 ? "true" : "false")"
+                            @(course.Tees.Count == 0 ? "disabled" : "")>
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+
+                    <!-- Name + Website -->
+                    <div class="flex-grow-1">
+                        <span class="fw-semibold">@course.Name</span>
+                        @if (!string.IsNullOrEmpty(course.Website))
+                        {
+                            <a href="@course.Website" target="_blank" class="text-muted small ms-2 text-decoration-none">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        }
+                        <div class="text-muted small">
+                            @course.City@(!string.IsNullOrEmpty(course.State) ? $", {course.State}" : "")
+                            @if (!string.IsNullOrEmpty(course.Address)) { <span class="ms-2">@course.Address</span> }
+                        </div>
+                    </div>
+
+                    <!-- Holes badge -->
+                    <span class="badge bg-secondary bg-opacity-75 fs-6 fw-bold">@course.Holes holes</span>
+
+                    <!-- Import form (one per course) -->
+                    <form method="post" asp-page-handler="PreImport" class="d-flex align-items-center gap-1 import-form">
+                        <input type="hidden" name="courseJson" value="@courseJson" />
+                        <input type="hidden" name="teeIndices" class="tee-indices-input" value="" />
+                        <button type="submit" class="btn btn-sm btn-success">
+                            <i class="bi bi-cloud-download me-1"></i>Import
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Collapsible tee checkboxes -->
+                @if (course.Tees.Count > 0)
+                {
+                    <div id="@collapseId" class="collapse show">
+                        <div class="border-top px-3 py-2 bg-light">
+                            <div class="small text-muted mb-1 fw-semibold">Select tee boxes to import:</div>
+                            <div class="d-flex flex-wrap gap-3">
+                                @foreach (var (tee, ti) in course.Tees.Select((t, i) => (t, i)))
+                                {
+                                    <div class="form-check tee-check" data-row="@ri">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="tee-@ri-@ti" value="@ti"
+                                               checked="checked" />
+                                        <label class="form-check-label small" for="tee-@ri-@ti">
+                                            <span class="fw-semibold">@tee.TeeName</span>
+                                            <span class="text-muted">Par @tee.Par</span>
+                                            @if (tee.CourseRating.HasValue)
+                                            {
+                                                <span class="text-muted">| @tee.CourseRating.Value.ToString("F1") / @tee.SlopeRating?.ToString("F0")</span>
+                                            }
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="border-top px-3 py-2 bg-light">
+                        <span class="text-muted fst-italic small">No tee data available — course details will still be imported.</span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+}
+
+@section Scripts {
+<script>
+// Before each import form submits, collect the checked tee indices for that course card.
+document.querySelectorAll('.import-form').forEach(form => {
+    form.addEventListener('submit', () => {
+        const card = form.closest('.card');
+        const checked = Array.from(card.querySelectorAll('.tee-check .form-check-input:checked'))
+            .map(cb => cb.value);
+        const hidden = form.querySelector('.tee-indices-input');
+        if (hidden) hidden.value = checked.join(',');
+    });
+});
+</script>
+}

@@ -70,9 +70,11 @@ public class CreateTournamentModel : PageModel
             Name = Input.Name,
             Description = Input.Description,
             Format = Input.Format,
-            StartDate = Input.StartDate.ToUniversalTime(),
-            EndDate = Input.EndDate.ToUniversalTime(),
-            RegistrationDeadline = Input.RegistrationDeadline?.ToUniversalTime(),
+            StartDate            = DateTime.SpecifyKind(Input.StartDate, DateTimeKind.Utc),
+            EndDate              = DateTime.SpecifyKind(Input.EndDate,   DateTimeKind.Utc),
+            RegistrationDeadline = Input.RegistrationDeadline.HasValue
+                ? DateTime.SpecifyKind(Input.RegistrationDeadline.Value, DateTimeKind.Utc)
+                : null,
             NumberOfRounds = Input.NumberOfRounds,
             MaxParticipants = Input.MaxParticipants,
             UseHandicaps = Input.UseHandicaps,

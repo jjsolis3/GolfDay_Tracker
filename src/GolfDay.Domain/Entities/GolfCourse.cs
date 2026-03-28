@@ -4,7 +4,8 @@ namespace GolfDay.Domain.Entities;
 
 public class GolfCourse : BaseEntity
 {
-    public int ClubId { get; set; }
+    /// <summary>Optional managing club. Null = public / standalone course.</summary>
+    public int? ClubId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Address { get; set; }
@@ -19,11 +20,13 @@ public class GolfCourse : BaseEntity
     public double? CourseRating { get; set; }
     public double? SlopeRating { get; set; }
     public bool IsActive { get; set; } = true;
-    public bool IsHomeClubCourse { get; set; } = false;
+    /// <summary>When true the course is visible to all clubs, not just the managing club.</summary>
+    public bool IsPublic { get; set; } = true;
 
     // Navigation
-    public Club Club { get; set; } = null!;
-    public ICollection<CourseHole> Holes { get; set; } = new List<CourseHole>();
-    public ICollection<GolfEvent> Events { get; set; } = new List<GolfEvent>();
-    public ICollection<Round> Rounds { get; set; } = new List<Round>();
+    public Club? Club { get; set; }
+    public ICollection<CourseHole>       Holes    { get; set; } = new List<CourseHole>();
+    public ICollection<GolfCourseTeeBox> TeeBoxes { get; set; } = new List<GolfCourseTeeBox>();
+    public ICollection<GolfEvent>        Events   { get; set; } = new List<GolfEvent>();
+    public ICollection<Round>            Rounds   { get; set; } = new List<Round>();
 }

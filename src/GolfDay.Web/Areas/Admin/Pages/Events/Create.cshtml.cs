@@ -80,7 +80,7 @@ public class CreateModel : PageModel
         if (Input.CourseId.HasValue)
         {
             var courseExists = await _db.GolfCourses
-                .AnyAsync(c => c.Id == Input.CourseId.Value && c.ClubId == Input.ClubId);
+                .AnyAsync(c => c.Id == Input.CourseId.Value && c.IsActive);
             if (!courseExists) Input.CourseId = null;
         }
 
@@ -91,8 +91,10 @@ public class CreateModel : PageModel
             Name = Input.Name,
             Description = Input.Description,
             EventType = Input.EventType,
-            EventDate = Input.EventDate,
-            EndDate = Input.EndDate,
+            EventDate = DateTime.SpecifyKind(Input.EventDate, DateTimeKind.Utc),
+            EndDate   = Input.EndDate.HasValue
+                ? DateTime.SpecifyKind(Input.EndDate.Value, DateTimeKind.Utc)
+                : null,
             Format = Input.Format,
             MaxParticipants = Input.MaxParticipants,
             IsPublic = Input.IsPublic,

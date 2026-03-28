@@ -85,7 +85,7 @@ public static class DbSeeder
                         CourseRating = 74.3,
                         SlopeRating = 155.0,
                         IsActive = true,
-                        IsHomeClubCourse = true
+                        IsPublic = true
                     };
                     db.GolfCourses.Add(course);
                     await db.SaveChangesAsync();

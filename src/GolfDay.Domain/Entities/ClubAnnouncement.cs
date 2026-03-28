@@ -19,5 +19,5 @@ public class ClubAnnouncement : BaseEntity
 
     // Navigation
     public Club Club { get; set; } = null!;
-    public ApplicationUser CreatedBy { get; set; } = null!;
+    public new ApplicationUser CreatedBy { get; set; } = null!;
 }

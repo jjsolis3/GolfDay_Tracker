@@ -66,25 +66,30 @@
                     <div class="card-body">
                         <div class="mb-3">
                             <label asp-for="Input.CourseId" class="form-label fw-semibold"></label>
+
                             @if (Model.Courses.Any())
                             {
+                                var courseGroups = Model.Courses
+                                .GroupBy(c => c.Club?.Name ?? "Public Courses")
+                                .OrderBy(g => g.Key == "Public Courses" ? 1 : 0)
+                                .ThenBy(g => g.Key);
+
                                 <select asp-for="Input.CourseId" class="form-select form-select-lg">
                                     <option value="">— Select a course —</option>
-                                    @{
-                                        string? lastGroup = null;
-                                    }
-                                    @foreach (var course in Model.Courses)
+
+                                    @foreach (var clubGroup in courseGroups)
                                     {
-                                        var group = course.Club.Name;
-                                        if (group != lastGroup)
-                                        {
-                                            if (lastGroup != null) { <text></optgroup></text> }
-                                            <optgroup label="@group">
-                                            lastGroup = group;
-                                        }
-                                        <option value="@course.Id">@course.Name (@course.NumberOfHoles holes, Par @course.ParTotal)</option>
+                                        <optgroup label="@clubGroup.Key">
+                                            @foreach (var course in clubGroup)
+                                            {
+                                                <option value="@course.Id"
+                                                        data-par="@course.ParTotal"
+                                                        data-holes="@course.NumberOfHoles">
+                                                    @course.Name (@course.NumberOfHoles holes, Par @course.ParTotal)
+                                                </option>
+                                            }
+                                        </optgroup>
                                     }
-                                    @if (lastGroup != null) { <text></optgroup></text> }
                                 </select>
                             }
                             else
@@ -94,6 +99,7 @@
                                     No courses available. Join a club first to see courses.
                                 </div>
                             }
+
                             <span asp-validation-for="Input.CourseId" class="text-danger small"></span>
                         </div>
 
@@ -119,6 +125,9 @@
                                 <label asp-for="Input.GrossScore" class="form-label fw-semibold"></label>
                                 <input asp-for="Input.GrossScore" type="number" min="18" max="200"
                                        class="form-control score-input" placeholder="e.g. 82" />
+                                <div id="to-par-badge" class="text-center mt-1" style="display:none">
+                                    <span id="to-par-value" class="badge fs-6"></span>
+                                </div>
                                 <span asp-validation-for="Input.GrossScore" class="text-danger small"></span>
                             </div>
                             <div class="col-sm-4">
@@ -175,7 +184,10 @@
                             </fieldset>
 
                             <fieldset class="stat-group">
-                                <legend>Hole Results</legend>
+                                <legend>
+                                    Hole Results
+                                    <span id="hole-counter" class="badge bg-secondary ms-2" style="font-size:.75rem;vertical-align:middle;display:none"></span>
+                                </legend>
                                 <div class="row g-2">
                                     <div class="col-6 col-sm-3">
                                         <label asp-for="Input.Birdies" class="form-label small mb-1">
@@ -234,19 +246,127 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Auto-calculate net score when gross and handicap change
-        const gross = document.querySelector('[name="Input.GrossScore"]');
-        const hcp   = document.querySelector('[name="Input.HandicapUsed"]');
-        const net   = document.querySelector('[name="Input.NetScore"]');
+    (function () {
+        const gross        = document.querySelector('[name="Input.GrossScore"]');
+        const hcp          = document.querySelector('[name="Input.HandicapUsed"]');
+        const net          = document.querySelector('[name="Input.NetScore"]');
+        const birdiesEl    = document.querySelector('[name="Input.Birdies"]');
+        const parsEl       = document.querySelector('[name="Input.Pars"]');
+        const bogeysEl     = document.querySelector('[name="Input.Bogeys"]');
+        const doublesEl    = document.querySelector('[name="Input.DoubleBogeys"]');
+        const puttsEl      = document.querySelector('[name="Input.TotalPutts"]');
+        const girEl        = document.querySelector('[name="Input.GreensInRegulation"]');
+        const fairwaysEl   = document.querySelector('[name="Input.FairwaysHit"]');
+        const courseSelect = document.querySelector('[name="Input.CourseId"]');
+        const toParBadge   = document.getElementById('to-par-badge');
+        const toParValue   = document.getElementById('to-par-value');
+        const holeCounter  = document.getElementById('hole-counter');
 
-        function calcNet() {
+        // Track manual edits so auto-suggestions don't clobber user input
+        let netManually      = net.value !== '';
+        let girManually      = girEl.value !== '';
+        let puttsManually    = puttsEl.value !== '';
+        let fairwaysManually = fairwaysEl.value !== '';
+
+        net.addEventListener('input',      () => { netManually      = true; });
+        girEl.addEventListener('input',    () => { girManually      = true; });
+        puttsEl.addEventListener('input',  () => { puttsManually    = true; });
+        fairwaysEl.addEventListener('input', () => { fairwaysManually = true; });
+
+        function getCoursePar()   { return parseInt(courseSelect?.options[courseSelect.selectedIndex]?.dataset?.par)   || 0; }
+        function getCourseHoles() { return parseInt(courseSelect?.options[courseSelect.selectedIndex]?.dataset?.holes) || 18; }
+
+        // ── Net Score ─────────────────────────────────────────────────────────
+        // Always recalculates unless the user typed in the net field directly.
+        function updateNet() {
+            if (netManually) return;
             const g = parseInt(gross.value);
             const h = parseFloat(hcp.value);
-            if (!isNaN(g) && !isNaN(h) && net.value === '') {
+            if (!isNaN(g) && !isNaN(h)) {
                 net.value = Math.round(g - h);
+            } else if (gross.value === '') {
+                net.value = '';
             }
         }
-        gross.addEventListener('change', calcNet);
-        hcp.addEventListener('change', calcNet);
+
+        // ── To-Par Badge ──────────────────────────────────────────────────────
+        function updateToPar() {
+            const g   = parseInt(gross.value);
+            const par = getCoursePar();
+            if (!isNaN(g) && g > 0 && par > 0) {
+                const diff = g - par;
+                const sign = diff > 0 ? '+' : '';
+                toParValue.textContent = `${sign}${diff} vs par`;
+                toParValue.className = 'badge fs-6 ' +
+                    (diff < 0 ? 'bg-danger' : diff > 0 ? 'bg-primary' : 'bg-success');
+                toParBadge.style.display = '';
+            } else {
+                toParBadge.style.display = 'none';
+            }
+        }
+
+        // ── Hole Counter ──────────────────────────────────────────────────────
+        function updateHoleCounter() {
+            const b  = parseInt(birdiesEl.value) || 0;
+            const p  = parseInt(parsEl.value)    || 0;
+            const bo = parseInt(bogeysEl.value)  || 0;
+            const d  = parseInt(doublesEl.value) || 0;
+            const total = b + p + bo + d;
+            if (total === 0) { holeCounter.style.display = 'none'; return; }
+            const holes = getCourseHoles();
+            holeCounter.textContent = `${total}/${holes} holes`;
+            holeCounter.className = 'badge ms-2 ' +
+                (total > holes ? 'bg-danger' : total === holes ? 'bg-success' : 'bg-secondary');
+            holeCounter.style.display = '';
+        }
+
+        // ── Auto-Suggest Stats from Hole Breakdown ────────────────────────────
+        // These are estimates — the user can override any field.
+        //
+        // GIR  ≈ birdies + pars  (if you made par or better, you likely hit GIR)
+        // Putts ≈ 2 per GIR hole + 1.7 per non-GIR hole
+        // FIR  ≈ 80% of GIR, capped at available fairways (holes − par-3s ≈ holes−4)
+        function autoSuggestStats() {
+            const b      = parseInt(birdiesEl.value) || 0;
+            const p      = parseInt(parsEl.value)    || 0;
+            const holes  = getCourseHoles();
+
+            // GIR suggestion
+            if (!girManually) {
+                const sugGIR = Math.min(b + p, holes);
+                girEl.value = (b + p > 0) ? sugGIR : '';
+            }
+
+            // Putts suggestion (based on current GIR — may have just been auto-set above)
+            if (!puttsManually) {
+                const girVal = parseInt(girEl.value) || 0;
+                if (girVal > 0) {
+                    puttsEl.value = Math.round(girVal * 2 + (holes - girVal) * 1.7);
+                } else {
+                    puttsEl.value = '';
+                }
+            }
+
+            // Fairways suggestion
+            if (!fairwaysManually) {
+                const girVal    = parseInt(girEl.value) || 0;
+                const totalFW   = Math.max(holes - 4, 0); // rough: ~4 par-3s per 18 holes
+                const sugFW     = Math.min(Math.round(girVal * 0.85), totalFW);
+                fairwaysEl.value = girVal > 0 ? (sugFW || '') : '';
+            }
+        }
+
+        // ── Wire up events ────────────────────────────────────────────────────
+        gross.addEventListener('input', () => { updateNet(); updateToPar(); });
+        hcp.addEventListener('input',   () => { updateNet(); });
+        courseSelect?.addEventListener('change', () => { updateToPar(); updateHoleCounter(); });
+        [birdiesEl, parsEl, bogeysEl, doublesEl].forEach(el =>
+            el?.addEventListener('input', () => { updateHoleCounter(); autoSuggestStats(); })
+        );
+
+        // Initialise on page load (handles server-roundtrip values on validation failure)
+        updateToPar();
+        updateHoleCounter();
+    })();
     </script>
 }

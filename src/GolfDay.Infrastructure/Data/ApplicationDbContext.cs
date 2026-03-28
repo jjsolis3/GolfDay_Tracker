@@ -10,8 +10,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
     public DbSet<Club> Clubs => Set<Club>();
-    public DbSet<GolfCourse> GolfCourses => Set<GolfCourse>();
-    public DbSet<CourseHole> CourseHoles => Set<CourseHole>();
+    public DbSet<GolfCourse>       GolfCourses        => Set<GolfCourse>();
+    public DbSet<GolfCourseTeeBox> GolfCourseTeeBoxes => Set<GolfCourseTeeBox>();
+    public DbSet<CourseHole>       CourseHoles        => Set<CourseHole>();
     public DbSet<ClubMembership> ClubMemberships => Set<ClubMembership>();
     public DbSet<ClubMembershipInvitation> ClubMembershipInvitations => Set<ClubMembershipInvitation>();
     public DbSet<ClubJoinRequest> ClubJoinRequests => Set<ClubJoinRequest>();

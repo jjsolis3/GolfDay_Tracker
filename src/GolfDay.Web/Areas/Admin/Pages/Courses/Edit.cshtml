@@ -1,0 +1,225 @@
+@page "{id:int?}"
+@model GolfDay.Web.Areas.Admin.Pages.Courses.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "Add Course" : "Edit Course";
+    // uses main layout via _ViewStart
+}
+
+<div class="mb-4">
+    <a asp-page="Index" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left me-1"></i>Back to Courses
+    </a>
+    <h2 class="fw-bold mt-1"><i class="bi bi-map me-2 text-success"></i>@ViewData["Title"]</h2>
+</div>
+
+@if (Model.ApiSource is not null)
+{
+    <div class="alert alert-success d-flex align-items-start gap-3 mb-4">
+        <i class="bi bi-cloud-check-fill fs-4 mt-1"></i>
+        <div>
+            <strong>Pre-filled from Golf Course API</strong> —
+            <em>@Model.ApiSource.Name</em>
+            @if (Model.ApiSource.SelectedTees.Count > 0)
+            {
+                <span class="text-muted ms-1">with <strong>@Model.ApiSource.SelectedTees.Count</strong> tee box@(Model.ApiSource.SelectedTees.Count != 1 ? "es" : "") selected:
+                    @string.Join(", ", Model.ApiSource.SelectedTees.Select(t => t.TeeName))
+                </span>
+            }
+            <div class="small text-muted mt-1">
+                Review the data below, adjust anything if needed, then click <strong>Create Course</strong>.
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <input type="hidden" asp-for="PendingTeesJson" />
+
+            <!-- Identity -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-success bg-opacity-10 border-0 fw-semibold text-success">
+                    <i class="bi bi-info-circle me-1"></i>Course Identity
+                </div>
+                <div class="card-body row g-3">
+                    <div class="col-12">
+                        <label asp-for="Input.Name" class="form-label fw-semibold">Course Name</label>
+                        <input asp-for="Input.Name" class="form-control" placeholder="e.g. Pebble Beach Golf Links" />
+                        <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.ClubId" class="form-label fw-semibold">Managing Club <small class="fw-normal text-muted">(optional)</small></label>
+                        <select asp-for="Input.ClubId" asp-items="Model.ClubOptions" class="form-select">
+                            <option value="">— Public / No Club —</option>
+                        </select>
+                        <div class="form-text">Leave blank to make this a public standalone course.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Visibility</label>
+                        <div class="form-check form-switch mt-2">
+                            <input asp-for="Input.IsPublic" class="form-check-input" role="switch" />
+                            <label asp-for="Input.IsPublic" class="form-check-label">Public to all clubs</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div class="form-check form-switch mt-2">
+                            <input asp-for="Input.IsActive" class="form-check-input" role="switch" />
+                            <label asp-for="Input.IsActive" class="form-check-label">Active</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Input.Description" class="form-label fw-semibold">Description</label>
+                        <textarea asp-for="Input.Description" class="form-control" rows="2" placeholder="Optional notes about the course…"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info bg-opacity-10 border-0 fw-semibold text-info">
+                    <i class="bi bi-geo-alt me-1"></i>Location
+                </div>
+                <div class="card-body row g-3">
+                    <div class="col-12">
+                        <label asp-for="Input.Address" class="form-label fw-semibold">Street Address</label>
+                        <input asp-for="Input.Address" class="form-control" />
+                    </div>
+                    <div class="col-md-5">
+                        <label asp-for="Input.City" class="form-label fw-semibold">City</label>
+                        <input asp-for="Input.City" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Input.State" class="form-label fw-semibold">State</label>
+                        <input asp-for="Input.State" class="form-control" placeholder="e.g. CA" />
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="Input.ZipCode" class="form-label fw-semibold">ZIP</label>
+                        <input asp-for="Input.ZipCode" class="form-control" />
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="Input.Country" class="form-label fw-semibold">Country</label>
+                        <input asp-for="Input.Country" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.Phone" class="form-label fw-semibold">Phone</label>
+                        <input asp-for="Input.Phone" class="form-control" type="tel" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.Website" class="form-label fw-semibold">Website</label>
+                        <input asp-for="Input.Website" class="form-control" type="url" placeholder="https://" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scoring Data -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary bg-opacity-10 border-0 fw-semibold text-primary">
+                    <i class="bi bi-123 me-1"></i>Scoring Data
+                </div>
+                <div class="card-body row g-3">
+                    <div class="col-md-3">
+                        <label asp-for="Input.NumberOfHoles" class="form-label fw-semibold">Holes</label>
+                        <input asp-for="Input.NumberOfHoles" type="number" min="9" max="36" step="9" class="form-control text-center fw-bold" />
+                        <span asp-validation-for="Input.NumberOfHoles" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Input.ParTotal" class="form-label fw-semibold">Par</label>
+                        <input asp-for="Input.ParTotal" type="number" min="27" max="144" class="form-control text-center fw-bold" />
+                        <span asp-validation-for="Input.ParTotal" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Input.CourseRating" class="form-label fw-semibold">Course Rating</label>
+                        <input asp-for="Input.CourseRating" type="number" step="0.1" min="55" max="80" class="form-control text-center" placeholder="e.g. 72.4" />
+                        <span asp-validation-for="Input.CourseRating" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Input.SlopeRating" class="form-label fw-semibold">Slope Rating</label>
+                        <input asp-for="Input.SlopeRating" type="number" step="1" min="55" max="155" class="form-control text-center" placeholder="e.g. 131" />
+                        <span asp-validation-for="Input.SlopeRating" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Tee Boxes pending import (new course from API) ── *@
+            @if (Model.ApiSource is { SelectedTees.Count: > 0 })
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-success bg-opacity-10 border-0 fw-semibold text-success">
+                        <i class="bi bi-flag me-1"></i>Tee Boxes to Import
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tee</th>
+                                    <th class="text-center">Par</th>
+                                    <th class="text-center">Rating</th>
+                                    <th class="text-center">Slope</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var t in Model.ApiSource.SelectedTees)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@t.TeeName</td>
+                                        <td class="text-center">@t.Par</td>
+                                        <td class="text-center">@(t.CourseRating.HasValue ? t.CourseRating.Value.ToString("F1") : "—")</td>
+                                        <td class="text-center">@(t.SlopeRating.HasValue ? t.SlopeRating.Value.ToString("F0") : "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+
+            @* ── Existing tee boxes (editing a saved course) ── *@
+            @if (Model.ExistingTeeBoxes.Count > 0)
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-primary bg-opacity-10 border-0 fw-semibold text-primary d-flex justify-content-between">
+                        <span><i class="bi bi-flag me-1"></i>Tee Boxes</span>
+                        <span class="badge bg-primary rounded-pill">@Model.ExistingTeeBoxes.Count</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tee</th>
+                                    <th class="text-center">Par</th>
+                                    <th class="text-center">Rating</th>
+                                    <th class="text-center">Slope</th>
+                                    <th class="text-center">Yards</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var t in Model.ExistingTeeBoxes)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@t.TeeBoxName</td>
+                                        <td class="text-center">@t.Par</td>
+                                        <td class="text-center">@(t.CourseRating.HasValue ? t.CourseRating.Value.ToString("F1") : "—")</td>
+                                        <td class="text-center">@(t.SlopeRating.HasValue ? t.SlopeRating.Value.ToString("F0") : "—")</td>
+                                        <td class="text-center">@(t.TotalYards.HasValue ? t.TotalYards.Value.ToString("N0") : "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+
+            <div class="d-flex gap-2 justify-content-end">
+                <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-success px-4">
+                    <i class="bi bi-check-lg me-1"></i>@(Model.IsNew ? "Create Course" : "Save Changes")
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -18,7 +18,8 @@ public class StatsService : IStatsService
             .Include(r => r.HoleScores)
             .Include(r => r.Event)
             .Where(r => r.UserId == userId
-                     && r.Event.ClubId == clubId
+                     && r.EventId != null
+                     && r.Event!.ClubId == clubId
                      && r.Status == RoundStatus.Completed
                      && r.CompletedAt.HasValue
                      && r.CompletedAt.Value.Year == year)
@@ -235,7 +236,7 @@ public class StatsService : IStatsService
             .ToListAsync(ct);
 
         var rounds = await _db.Rounds
-            .Where(r => r.Event.TournamentId == tournamentId && r.Status == RoundStatus.Completed)
+            .Where(r => r.EventId != null && r.Event!.TournamentId == tournamentId && r.Status == RoundStatus.Completed)
             .GroupBy(r => r.UserId)
             .Select(g => new { UserId = g.Key, TotalGross = g.Sum(r => r.GrossScore ?? 0), TotalNet = g.Sum(r => r.NetScore ?? 0), TotalStableford = g.Sum(r => r.StablefordPoints ?? 0) })
             .ToListAsync(ct);

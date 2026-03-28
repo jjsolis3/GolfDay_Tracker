@@ -45,7 +45,7 @@ public class RoundsModel : PageModel
 
         var query = _db.Rounds
             .Include(r => r.Event)
-                .ThenInclude(e => e.Club)
+                .ThenInclude(e => e!.Club)
             .Include(r => r.Course)
             .Where(r => r.UserId        == user.Id
                      && r.Status        == RoundStatus.Completed

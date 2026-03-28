@@ -6,8 +6,9 @@ namespace GolfDay.Application.Common.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<Club> Clubs { get; }
-    DbSet<GolfCourse> GolfCourses { get; }
-    DbSet<CourseHole> CourseHoles { get; }
+    DbSet<GolfCourse>       GolfCourses        { get; }
+    DbSet<GolfCourseTeeBox> GolfCourseTeeBoxes { get; }
+    DbSet<CourseHole>       CourseHoles        { get; }
     DbSet<ClubMembership> ClubMemberships { get; }
     DbSet<ClubMembershipInvitation> ClubMembershipInvitations { get; }
     DbSet<ClubJoinRequest> ClubJoinRequests { get; }
