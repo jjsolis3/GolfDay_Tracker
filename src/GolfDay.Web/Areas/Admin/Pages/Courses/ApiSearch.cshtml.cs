@@ -37,8 +37,9 @@ public class ApiSearchModel : PageModel
         (Results, ApiError) = await _api.SearchAsync(Query.Trim(), State);
     }
 
-    /// Called when the admin clicks "Import" on a result + selects a tee.
-    public IActionResult OnPostPreImport(string courseJson, string teeIndex)
+    /// Called when the admin clicks "Import" — teeIndices is a comma-separated list
+    /// of selected tee indices (e.g. "0,2,3").  If empty all tees are imported.
+    public IActionResult OnPostPreImport(string courseJson, string? teeIndices)
     {
         try
         {
@@ -47,12 +48,27 @@ public class ApiSearchModel : PageModel
 
             if (result is null) return BadRequest();
 
-            // Pick the selected tee (or first available)
-            CourseTeeInfo? tee = null;
-            if (int.TryParse(teeIndex, out var idx) && idx >= 0 && idx < result.Tees.Count)
-                tee = result.Tees[idx];
+            // Collect the selected tees
+            List<CourseTeeInfo> selected;
+            if (!string.IsNullOrWhiteSpace(teeIndices))
+            {
+                var indices = teeIndices.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => int.TryParse(s.Trim(), out var n) ? n : -1)
+                    .Where(n => n >= 0 && n < result.Tees.Count)
+                    .Distinct()
+                    .ToList();
+
+                selected = indices.Count > 0
+                    ? indices.Select(i => result.Tees[i]).ToList()
+                    : result.Tees;
+            }
             else
-                tee = result.Tees.FirstOrDefault();
+            {
+                selected = result.Tees;
+            }
+
+            // Primary tee: first non-female tee in the selection (for backward-compat fields)
+            var primary = selected.FirstOrDefault() ?? result.Tees.FirstOrDefault();
 
             var import = new CourseApiImportData
             {
@@ -66,10 +82,11 @@ public class ApiSearchModel : PageModel
                 Phone        = result.Phone,
                 Website      = result.Website,
                 Holes        = result.Holes,
-                Par          = tee?.Par          ?? 72,
-                CourseRating = tee?.CourseRating,
-                SlopeRating  = tee?.SlopeRating,
-                TeeUsed      = tee?.TeeName,
+                Par          = primary?.Par          ?? 72,
+                CourseRating = primary?.CourseRating,
+                SlopeRating  = primary?.SlopeRating,
+                TeeUsed      = primary?.TeeName,
+                SelectedTees = selected,
             };
 
             TempData["ApiCourse"] = JsonSerializer.Serialize(import);

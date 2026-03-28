@@ -94,98 +94,105 @@
 {
     <div class="d-flex align-items-center justify-content-between mb-2">
         <span class="text-muted small">@Model.Results.Count result@(Model.Results.Count != 1 ? "s" : "") returned</span>
-        <span class="text-muted small fst-italic">Select a tee box then click Import to pre-fill the course form.</span>
+        <span class="text-muted small fst-italic">Check the tee boxes you want to import, then click Import.</span>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Course</th>
-                        <th>Location</th>
-                        <th class="text-center">Holes</th>
-                        <th>Tee / Rating-Slope</th>
-                        <th class="text-center">Import</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var (course, ri) in Model.Results.Select((c, i) => (c, i)))
-                    {
-                        var courseJson = JsonSerializer.Serialize(course);
-                        var defaultTeeIdx = course.Tees
-                            .Select((t, i) => (t, i))
-                            .OrderBy(x => x.t.TeeName.ToLower() switch {
-                                "white" => 0, "blue"  => 1, "silver" => 2,
-                                "gold"  => 3, "red"   => 4, _        => 5
-                            })
-                            .Select(x => x.i)
-                            .FirstOrDefault();
+    <div class="accordion" id="courseAccordion">
+        @foreach (var (course, ri) in Model.Results.Select((c, i) => (c, i)))
+        {
+            var courseJson = JsonSerializer.Serialize(course);
+            var collapseId = $"course-{ri}";
 
-                        <tr>
-                            <td>
-                                <div class="fw-semibold">@course.Name</div>
-                                @if (!string.IsNullOrEmpty(course.Website))
+            <div class="card border-0 shadow-sm mb-2">
+                <!-- Course header row -->
+                <div class="card-body py-2 px-3 d-flex align-items-center gap-3">
+                    <!-- Expand toggle (only when there are tees) -->
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none text-muted"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#@collapseId"
+                            aria-expanded="@(course.Tees.Count > 0 ? "true" : "false")"
+                            @(course.Tees.Count == 0 ? "disabled" : "")>
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+
+                    <!-- Name + Website -->
+                    <div class="flex-grow-1">
+                        <span class="fw-semibold">@course.Name</span>
+                        @if (!string.IsNullOrEmpty(course.Website))
+                        {
+                            <a href="@course.Website" target="_blank" class="text-muted small ms-2 text-decoration-none">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        }
+                        <div class="text-muted small">
+                            @course.City@(!string.IsNullOrEmpty(course.State) ? $", {course.State}" : "")
+                            @if (!string.IsNullOrEmpty(course.Address)) { <span class="ms-2">@course.Address</span> }
+                        </div>
+                    </div>
+
+                    <!-- Holes badge -->
+                    <span class="badge bg-secondary bg-opacity-75 fs-6 fw-bold">@course.Holes holes</span>
+
+                    <!-- Import form (one per course) -->
+                    <form method="post" asp-page-handler="PreImport" class="d-flex align-items-center gap-1 import-form">
+                        <input type="hidden" name="courseJson" value="@courseJson" />
+                        <input type="hidden" name="teeIndices" class="tee-indices-input" value="" />
+                        <button type="submit" class="btn btn-sm btn-success">
+                            <i class="bi bi-cloud-download me-1"></i>Import
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Collapsible tee checkboxes -->
+                @if (course.Tees.Count > 0)
+                {
+                    <div id="@collapseId" class="collapse show">
+                        <div class="border-top px-3 py-2 bg-light">
+                            <div class="small text-muted mb-1 fw-semibold">Select tee boxes to import:</div>
+                            <div class="d-flex flex-wrap gap-3">
+                                @foreach (var (tee, ti) in course.Tees.Select((t, i) => (t, i)))
                                 {
-                                    <a href="@course.Website" target="_blank" class="text-muted small text-decoration-none">
-                                        <i class="bi bi-box-arrow-up-right me-1"></i>Website
-                                    </a>
+                                    <div class="form-check tee-check" data-row="@ri">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="tee-@ri-@ti" value="@ti"
+                                               checked="checked" />
+                                        <label class="form-check-label small" for="tee-@ri-@ti">
+                                            <span class="fw-semibold">@tee.TeeName</span>
+                                            <span class="text-muted">Par @tee.Par</span>
+                                            @if (tee.CourseRating.HasValue)
+                                            {
+                                                <span class="text-muted">| @tee.CourseRating.Value.ToString("F1") / @tee.SlopeRating?.ToString("F0")</span>
+                                            }
+                                        </label>
+                                    </div>
                                 }
-                            </td>
-                            <td class="small">
-                                <div>@course.City@(!string.IsNullOrEmpty(course.State) ? $", {course.State}" : "")</div>
-                                @if (!string.IsNullOrEmpty(course.Address))
-                                {
-                                    <div class="text-muted">@course.Address</div>
-                                }
-                                @if (!string.IsNullOrEmpty(course.Phone))
-                                {
-                                    <div class="text-muted"><i class="bi bi-telephone me-1"></i>@course.Phone</div>
-                                }
-                            </td>
-                            <td class="text-center fw-bold">@course.Holes</td>
-                            <td style="min-width:240px">
-                                @if (course.Tees.Count > 0)
-                                {
-                                    <select class="form-select form-select-sm tee-select" id="tee-@ri">
-                                        @foreach (var (tee, ti) in course.Tees.Select((t, i) => (t, i)))
-                                        {
-                                            <option value="@ti" selected="@(ti == defaultTeeIdx)">
-                                                @tee.Label
-                                            </option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <span class="text-muted fst-italic small">No tee data</span>
-                                }
-                            </td>
-                            <td class="text-center">
-                                <form method="post" asp-page-handler="PreImport">
-                                    <input type="hidden" name="courseJson" value="@courseJson" />
-                                    <input type="hidden" name="teeIndex" class="tee-index-input" value="@defaultTeeIdx" />
-                                    <button type="submit" class="btn btn-sm btn-success" title="Import into GolfDay Tracker">
-                                        <i class="bi bi-cloud-download me-1"></i>Import
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="border-top px-3 py-2 bg-light">
+                        <span class="text-muted fst-italic small">No tee data available — course details will still be imported.</span>
+                    </div>
+                }
+            </div>
+        }
     </div>
 
 }
 
 @section Scripts {
 <script>
-// Keep each row's hidden tee-index input in sync with its tee dropdown
-document.querySelectorAll('.tee-select').forEach(sel => {
-    sel.addEventListener('change', () => {
-        const form = sel.closest('tr').querySelector('.tee-index-input');
-        if (form) form.value = sel.value;
+// Before each import form submits, collect the checked tee indices for that course card.
+document.querySelectorAll('.import-form').forEach(form => {
+    form.addEventListener('submit', () => {
+        const card = form.closest('.card');
+        const checked = Array.from(card.querySelectorAll('.tee-check .form-check-input:checked'))
+            .map(cb => cb.value);
+        const hidden = form.querySelector('.tee-indices-input');
+        if (hidden) hidden.value = checked.join(',');
     });
 });
 </script>

@@ -53,7 +53,7 @@ public class CourseTeeInfo
         (CourseRating.HasValue ? $"  |  {CourseRating:F1} / {SlopeRating:F0}" : "");
 }
 
-// Serialisable snapshot stored in TempData when the user picks a result to import
+// Serialisable snapshot stored in TempData when the user picks results to import
 public class CourseApiImportData
 {
     public string  ApiId        { get; set; } = string.Empty;
@@ -66,10 +66,16 @@ public class CourseApiImportData
     public string? Phone        { get; set; }
     public string? Website      { get; set; }
     public int     Holes        { get; set; } = 18;
+
+    // Primary tee (first selected male or all-gender tee) — used to pre-fill
+    // the course-level Par / Rating / Slope fields for backward compatibility.
     public int     Par          { get; set; } = 72;
     public double? CourseRating { get; set; }
     public double? SlopeRating  { get; set; }
     public string? TeeUsed      { get; set; }
+
+    /// <summary>All tee boxes the admin selected to import.</summary>
+    public List<CourseTeeInfo> SelectedTees { get; set; } = new();
 }
 
 // ─── Service interface & implementation ──────────────────────────────────────

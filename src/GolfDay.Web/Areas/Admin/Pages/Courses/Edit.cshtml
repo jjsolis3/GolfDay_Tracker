@@ -19,9 +19,11 @@
         <div>
             <strong>Pre-filled from Golf Course API</strong> —
             <em>@Model.ApiSource.Name</em>
-            @if (!string.IsNullOrEmpty(Model.ApiSource.TeeUsed))
+            @if (Model.ApiSource.SelectedTees.Count > 0)
             {
-                <span class="text-muted">using <strong>@Model.ApiSource.TeeUsed</strong> tees for rating/slope.</span>
+                <span class="text-muted ms-1">with <strong>@Model.ApiSource.SelectedTees.Count</strong> tee box@(Model.ApiSource.SelectedTees.Count != 1 ? "es" : "") selected:
+                    @string.Join(", ", Model.ApiSource.SelectedTees.Select(t => t.TeeName))
+                </span>
             }
             <div class="small text-muted mt-1">
                 Review the data below, adjust anything if needed, then click <strong>Create Course</strong>.
@@ -34,6 +36,7 @@
     <div class="col-lg-8">
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <input type="hidden" asp-for="PendingTeesJson" />
 
             <!-- Identity -->
             <div class="card border-0 shadow-sm mb-4">
@@ -139,6 +142,75 @@
                     </div>
                 </div>
             </div>
+
+            @* ── Tee Boxes pending import (new course from API) ── *@
+            @if (Model.ApiSource is { SelectedTees.Count: > 0 })
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-success bg-opacity-10 border-0 fw-semibold text-success">
+                        <i class="bi bi-flag me-1"></i>Tee Boxes to Import
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tee</th>
+                                    <th class="text-center">Par</th>
+                                    <th class="text-center">Rating</th>
+                                    <th class="text-center">Slope</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var t in Model.ApiSource.SelectedTees)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@t.TeeName</td>
+                                        <td class="text-center">@t.Par</td>
+                                        <td class="text-center">@(t.CourseRating.HasValue ? t.CourseRating.Value.ToString("F1") : "—")</td>
+                                        <td class="text-center">@(t.SlopeRating.HasValue ? t.SlopeRating.Value.ToString("F0") : "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+
+            @* ── Existing tee boxes (editing a saved course) ── *@
+            @if (Model.ExistingTeeBoxes.Count > 0)
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-primary bg-opacity-10 border-0 fw-semibold text-primary d-flex justify-content-between">
+                        <span><i class="bi bi-flag me-1"></i>Tee Boxes</span>
+                        <span class="badge bg-primary rounded-pill">@Model.ExistingTeeBoxes.Count</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tee</th>
+                                    <th class="text-center">Par</th>
+                                    <th class="text-center">Rating</th>
+                                    <th class="text-center">Slope</th>
+                                    <th class="text-center">Yards</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var t in Model.ExistingTeeBoxes)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@t.TeeBoxName</td>
+                                        <td class="text-center">@t.Par</td>
+                                        <td class="text-center">@(t.CourseRating.HasValue ? t.CourseRating.Value.ToString("F1") : "—")</td>
+                                        <td class="text-center">@(t.SlopeRating.HasValue ? t.SlopeRating.Value.ToString("F0") : "—")</td>
+                                        <td class="text-center">@(t.TotalYards.HasValue ? t.TotalYards.Value.ToString("N0") : "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
 
             <div class="d-flex gap-2 justify-content-end">
                 <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>

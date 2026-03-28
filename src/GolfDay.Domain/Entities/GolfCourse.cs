@@ -25,7 +25,8 @@ public class GolfCourse : BaseEntity
 
     // Navigation
     public Club? Club { get; set; }
-    public ICollection<CourseHole> Holes { get; set; } = new List<CourseHole>();
-    public ICollection<GolfEvent> Events { get; set; } = new List<GolfEvent>();
-    public ICollection<Round> Rounds { get; set; } = new List<Round>();
+    public ICollection<CourseHole>       Holes    { get; set; } = new List<CourseHole>();
+    public ICollection<GolfCourseTeeBox> TeeBoxes { get; set; } = new List<GolfCourseTeeBox>();
+    public ICollection<GolfEvent>        Events   { get; set; } = new List<GolfEvent>();
+    public ICollection<Round>            Rounds   { get; set; } = new List<Round>();
 }

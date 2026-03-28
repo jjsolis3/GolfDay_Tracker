@@ -22,11 +22,17 @@ public class EditModel : PageModel
 
     [BindProperty] public InputModel Input { get; set; } = new();
 
+    /// JSON-serialised list of tees to create after the course is saved (hidden field).
+    [BindProperty] public string? PendingTeesJson { get; set; }
+
     public SelectList ClubOptions { get; set; } = null!;
     public bool IsNew => Id is null;
 
     /// Set when the form was pre-filled from the Golf Course API search.
     public CourseApiImportData? ApiSource { get; private set; }
+
+    /// Existing tee boxes when editing a saved course.
+    public List<GolfCourseTeeBox> ExistingTeeBoxes { get; private set; } = new();
 
     public class InputModel
     {
@@ -83,13 +89,18 @@ public class EditModel : PageModel
                     IsActive      = true,
                     IsPublic      = true,
                 };
+                // Carry selected tees through the hidden field so OnPost can create them
+                if (ApiSource.SelectedTees.Count > 0)
+                    PendingTeesJson = JsonSerializer.Serialize(ApiSource.SelectedTees);
                 return Page();
             }
         }
 
         if (Id is null) return Page();
 
-        var course = await _db.GolfCourses.FindAsync(Id);
+        var course = await _db.GolfCourses
+            .Include(c => c.TeeBoxes)
+            .FirstOrDefaultAsync(c => c.Id == Id);
         if (course is null) return NotFound();
 
         Input = new InputModel
@@ -111,6 +122,7 @@ public class EditModel : PageModel
             IsActive      = course.IsActive,
             IsPublic      = course.IsPublic,
         };
+        ExistingTeeBoxes = course.TeeBoxes.OrderBy(t => t.TeeBoxName).ToList();
         return Page();
     }
 
@@ -148,6 +160,34 @@ public class EditModel : PageModel
         course.IsPublic      = Input.IsPublic;
 
         await _db.SaveChangesAsync();
+
+        // Create tee box rows from the API import (new courses only)
+        if (Id is null && !string.IsNullOrWhiteSpace(PendingTeesJson))
+        {
+            try
+            {
+                var tees = JsonSerializer.Deserialize<List<CourseTeeInfo>>(PendingTeesJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (tees is { Count: > 0 })
+                {
+                    foreach (var t in tees)
+                    {
+                        _db.GolfCourseTeeBoxes.Add(new GolfCourseTeeBox
+                        {
+                            GolfCourseId = course.Id,
+                            TeeBoxName   = t.TeeName,
+                            Par          = t.Par,
+                            CourseRating = t.CourseRating,
+                            SlopeRating  = t.SlopeRating,
+                        });
+                    }
+                    await _db.SaveChangesAsync();
+                }
+            }
+            catch { /* ignore parse errors — tee boxes can be added manually */ }
+        }
+
         TempData["SuccessMessage"] = $"Course \"{course.Name}\" {(Id is null ? "created" : "updated")}.";
         return RedirectToPage("Index");
     }
